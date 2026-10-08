@@ -135,8 +135,26 @@
            MOVE FUNCTION UPPER-CASE(PASSWDI OF COSGN0AI) TO
                            WS-USER-PWD
 
+      *----------------------------------------------------------------*
+      * Mock de demonstracao/teste: usuario ADMIN + senha ADMIN
+      * concede acesso administrativo sem leitura do USRSEC.
+      * Demais credenciais seguem o fluxo real via READ-USER-SEC-FILE.
+      *----------------------------------------------------------------*
            IF NOT ERR-FLG-ON
-               PERFORM READ-USER-SEC-FILE
+               IF WS-USER-ID = 'ADMIN'
+                  AND WS-USER-PWD = 'ADMIN'
+                   MOVE WS-TRANID    TO CDEMO-FROM-TRANID
+                   MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
+                   MOVE WS-USER-ID   TO CDEMO-USER-ID
+                   MOVE 'A'          TO CDEMO-USER-TYPE
+                   MOVE ZEROS        TO CDEMO-PGM-CONTEXT
+                   EXEC CICS XCTL
+                        PROGRAM ('COADM01C')
+                        COMMAREA(CARDDEMO-COMMAREA)
+                   END-EXEC
+               ELSE
+                   PERFORM READ-USER-SEC-FILE
+               END-IF
            END-IF.
 
       *----------------------------------------------------------------*

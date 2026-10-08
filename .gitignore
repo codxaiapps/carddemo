@@ -6,3 +6,18 @@ batch-app/markers/*
 /.idea/
 .DS_Store
 **/.DS_Store
+
+# Relatórios / status / progresso (não versionar)
+INSTRUCOES_VM.md
+LEIAME_*
+CHECKLIST_*
+EXECUCAO_*
+RESUMO_*
+REVISAO_*
+RASTREABILIDADE_*
+RELATORIO_*
+SUMARIO_*
+STATUS_*
+VALIDACAO_*
+PROGRESSO_*
+IMPLEMENTACAO_*
