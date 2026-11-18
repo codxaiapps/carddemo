@@ -82,14 +82,15 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
 
       *----------------------------------------------------------------*
       *                        LINKAGE SECTION
       *----------------------------------------------------------------*
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
       *----------------------------------------------------------------*
       *                       PROCEDURE DIVISION
@@ -138,10 +139,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      PROCESS-ENTER-KEY
@@ -193,20 +191,14 @@
                         MOVE WS-TRANID    TO CDEMO-FROM-TRANID
                         MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
                         MOVE 0        TO CDEMO-PGM-CONTEXT
-                        EXEC CICS
-                            XCTL PROGRAM(CDEMO-TO-PROGRAM)
-                            COMMAREA(CARDDEMO-COMMAREA)
-                        END-EXEC
+                        CONTINUE
                    WHEN 'D'
                    WHEN 'd'
                         MOVE 'COUSR03C'   TO CDEMO-TO-PROGRAM
                         MOVE WS-TRANID    TO CDEMO-FROM-TRANID
                         MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
                         MOVE 0        TO CDEMO-PGM-CONTEXT
-                        EXEC CICS
-                            XCTL PROGRAM(CDEMO-TO-PROGRAM)
-                            COMMAREA(CARDDEMO-COMMAREA)
-                        END-EXEC
+                        CONTINUE
                    WHEN OTHER
                        MOVE
                        'Invalid selection. Valid values are U and D' TO
@@ -511,10 +503,7 @@
            MOVE WS-TRANID    TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
            MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-               COMMAREA(CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      SEND-USRLST-SCREEN
@@ -526,21 +515,9 @@
            MOVE WS-MESSAGE TO ERRMSGO OF COUSR0AO
 
            IF SEND-ERASE-YES
-               EXEC CICS SEND
-                         MAP('COUSR0A')
-                         MAPSET('COUSR00')
-                         FROM(COUSR0AO)
-                         ERASE
-                         CURSOR
-               END-EXEC
+               CONTINUE
            ELSE
-               EXEC CICS SEND
-                         MAP('COUSR0A')
-                         MAPSET('COUSR00')
-                         FROM(COUSR0AO)
-      *                  ERASE
-                         CURSOR
-               END-EXEC
+               CONTINUE
            END-IF.
 
       *----------------------------------------------------------------*
@@ -548,13 +525,7 @@
       *----------------------------------------------------------------*
        RECEIVE-USRLST-SCREEN.
 
-           EXEC CICS RECEIVE
-                     MAP('COUSR0A')
-                     MAPSET('COUSR00')
-                     INTO(COUSR0AI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO
@@ -585,19 +556,12 @@
       *----------------------------------------------------------------*
        STARTBR-USER-SEC-FILE.
 
-           EXEC CICS STARTBR
-                DATASET   (WS-USRSEC-FILE)
-                RIDFLD    (SEC-USR-ID)
-                KEYLENGTH (LENGTH OF SEC-USR-ID)
-      *         GTEQ
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    CONTINUE
                    SET USER-SEC-EOF TO TRUE
                    MOVE 'You are at the top of the page...' TO
@@ -618,20 +582,12 @@
       *----------------------------------------------------------------*
        READNEXT-USER-SEC-FILE.
 
-           EXEC CICS READNEXT
-                DATASET   (WS-USRSEC-FILE)
-                INTO      (SEC-USER-DATA)
-                LENGTH    (LENGTH OF SEC-USER-DATA)
-                RIDFLD    (SEC-USR-ID)
-                KEYLENGTH (LENGTH OF SEC-USR-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(ENDFILE)
+               WHEN DFHRESP-ENDFILE
                    CONTINUE
                    SET USER-SEC-EOF TO TRUE
                    MOVE 'You have reached the bottom of the page...' TO
@@ -652,20 +608,12 @@
       *----------------------------------------------------------------*
        READPREV-USER-SEC-FILE.
 
-           EXEC CICS READPREV
-                DATASET   (WS-USRSEC-FILE)
-                INTO      (SEC-USER-DATA)
-                LENGTH    (LENGTH OF SEC-USER-DATA)
-                RIDFLD    (SEC-USR-ID)
-                KEYLENGTH (LENGTH OF SEC-USR-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(ENDFILE)
+               WHEN DFHRESP-ENDFILE
                    CONTINUE
                    SET USER-SEC-EOF TO TRUE
                    MOVE 'You have reached the top of the page...' TO
@@ -686,9 +634,7 @@
       *----------------------------------------------------------------*
        ENDBR-USER-SEC-FILE.
 
-           EXEC CICS ENDBR
-                DATASET   (WS-USRSEC-FILE)
-           END-EXEC.
+           CONTINUE.
       
       *
       * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:34 CDT

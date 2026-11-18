@@ -264,7 +264,9 @@
                                                                                 
                                                                                 
       *IBM SUPPLIED COPYBOOKS                                                   
-       COPY DFHBMSCA.                                                           
+       COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.                                                           
        COPY DFHAID.                                                             
                                                                                 
       *COMMON COPYBOOKS                                                         
@@ -290,9 +292,8 @@
        COPY CVACT02Y.                                                           
                                                                                 
        LINKAGE SECTION.                                                         
-       01  DFHCOMMAREA.                                                         
-         05  FILLER                                PIC X(1)                     
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.                     
+       01  DFHCOMMAREA.
+         05  LK-COMMAREA                           PIC X(2000).                     
                                                                                 
        PROCEDURE DIVISION.                                                      
        0000-MAIN.                                                               
@@ -399,10 +400,7 @@
       *                                                                         
               SET CDEMO-PGM-ENTER   TO TRUE                                     
       *                                                                         
-              EXEC CICS XCTL                                                    
-                        PROGRAM (LIT-MENUPGM)                                   
-                        COMMAREA(CARDDEMO-COMMAREA)                             
-              END-EXEC                                                          
+              CONTINUE                                                          
            END-IF                                                               
       *****************************************************************         
       * If the user did not press PF8, lets reset the last page flag            
@@ -535,10 +533,7 @@
                                                                                 
       *            CALL CARD DETAIL PROGRAM                                     
       *                                                                         
-                   EXEC CICS XCTL                                               
-                        PROGRAM (CCARD-NEXT-PROG)                               
-                        COMMAREA(CARDDEMO-COMMAREA)                             
-                   END-EXEC                                                     
+                   CONTINUE                                                     
       *****************************************************************         
       *        TRANSFER TO CARD UPDATED PROGRAM                                 
       *****************************************************************         
@@ -563,10 +558,7 @@
                                                                                 
       *            CALL CARD UPDATE PROGRAM                                     
       *                                                                         
-                   EXEC CICS XCTL                                               
-                        PROGRAM (CCARD-NEXT-PROG)                               
-                        COMMAREA(CARDDEMO-COMMAREA)                             
-                   END-EXEC                                                     
+                   CONTINUE                                                     
                                                                                 
       *****************************************************************         
                WHEN OTHER                                                       
@@ -612,11 +604,7 @@
                                LENGTH OF WS-THIS-PROGCOMMAREA )                 
                                                                                 
                                                                                 
-           EXEC CICS RETURN                                                     
-                TRANSID (LIT-THISTRANID)                                        
-                COMMAREA (WS-COMMAREA)                                          
-                LENGTH(LENGTH OF WS-COMMAREA)                                   
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        0000-MAIN-EXIT.                                                          
            EXIT                                                                 
@@ -936,14 +924,7 @@
                                                                                 
                                                                                 
        1500-SEND-SCREEN.                                                        
-           EXEC CICS SEND MAP(LIT-THISMAP)                                      
-                          MAPSET(LIT-THISMAPSET)                                
-                          FROM(CCRDLIAO)                                        
-                          CURSOR                                                
-                          ERASE                                                 
-                          RESP(WS-RESP-CD)                                      
-                          FREEKB                                                
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        1500-SEND-SCREEN-EXIT.                                                   
            EXIT                                                                 
@@ -960,11 +941,7 @@
            EXIT                                                                 
            .                                                                    
        2100-RECEIVE-SCREEN.                                                     
-           EXEC CICS RECEIVE MAP(LIT-THISMAP)                                   
-                          MAPSET(LIT-THISMAPSET)                                
-                          INTO(CCRDLIAI)                                        
-                          RESP(WS-RESP-CD)                                      
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            MOVE ACCTSIDI OF CCRDLIAI  TO CC-ACCT-ID                             
            MOVE CARDSIDI OF CCRDLIAI  TO CC-CARD-NUM                            
@@ -1126,14 +1103,7 @@
       *****************************************************************         
       *    Start Browse                                                         
       *****************************************************************         
-           EXEC CICS STARTBR                                                    
-                DATASET(LIT-CARD-FILE)                                          
-                RIDFLD(WS-CARD-RID-CARDNUM)                                     
-                KEYLENGTH(LENGTH OF WS-CARD-RID-CARDNUM)                        
-                GTEQ                                                            
-                RESP(WS-RESP-CD)                                                
-                RESP2(WS-REAS-CD)                                               
-           END-EXEC                                                             
+           CONTINUE                                                             
       *****************************************************************         
       *    Loop through records and fetch max screen records                    
       *****************************************************************         
@@ -1143,19 +1113,11 @@
                                                                                 
            PERFORM UNTIL READ-LOOP-EXIT                                         
                                                                                 
-           EXEC CICS READNEXT                                                   
-                DATASET(LIT-CARD-FILE)                                          
-                INTO (CARD-RECORD)                                              
-                LENGTH(LENGTH OF CARD-RECORD)                                   
-                RIDFLD(WS-CARD-RID-CARDNUM)                                     
-                KEYLENGTH(LENGTH OF WS-CARD-RID-CARDNUM)                        
-                RESP(WS-RESP-CD)                                                
-                RESP2(WS-REAS-CD)                                               
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
-               WHEN DFHRESP(DUPREC)                                             
+               WHEN DFHRESP-NORMAL                                             
+               WHEN DFHRESP-DUPREC                                             
                    PERFORM 9500-FILTER-RECORDS                                  
                       THRU 9500-FILTER-RECORDS-EXIT                             
                                                                                 
@@ -1194,25 +1156,17 @@
                       MOVE CARD-ACCT-ID     TO WS-CA-LAST-CARD-ACCT-ID          
                       MOVE CARD-NUM         TO WS-CA-LAST-CARD-NUM              
                                                                                 
-                      EXEC CICS READNEXT                                        
-                        DATASET(LIT-CARD-FILE)                                  
-                        INTO (CARD-RECORD)                                      
-                        LENGTH(LENGTH OF CARD-RECORD)                           
-                        RIDFLD(WS-CARD-RID-CARDNUM)                             
-                        KEYLENGTH(LENGTH OF WS-CARD-RID-CARDNUM)                
-                        RESP(WS-RESP-CD)                                        
-                        RESP2(WS-REAS-CD)                                       
-                      END-EXEC                                                  
+                      CONTINUE                                                  
                                                                                 
                       EVALUATE WS-RESP-CD                                       
-                         WHEN DFHRESP(NORMAL)                                   
-                         WHEN DFHRESP(DUPREC)                                   
+                         WHEN DFHRESP-NORMAL                                   
+                         WHEN DFHRESP-DUPREC                                   
                               SET CA-NEXT-PAGE-EXISTS                           
                                                 TO TRUE                         
                               MOVE CARD-ACCT-ID TO                              
                                    WS-CA-LAST-CARD-ACCT-ID                      
                               MOVE CARD-NUM     TO WS-CA-LAST-CARD-NUM          
-                        WHEN DFHRESP(ENDFILE)                                   
+                        WHEN DFHRESP-ENDFILE                                   
                             SET CA-NEXT-PAGE-NOT-EXISTS     TO TRUE             
                                                                                 
                             IF WS-ERROR-MSG-OFF                                 
@@ -1230,7 +1184,7 @@
                           MOVE WS-FILE-ERROR-MESSAGE TO WS-ERROR-MSG            
                       END-EVALUATE                                              
                   END-IF                                                        
-               WHEN DFHRESP(ENDFILE)                                            
+               WHEN DFHRESP-ENDFILE                                            
                   SET READ-LOOP-EXIT              TO TRUE                       
                   SET CA-NEXT-PAGE-NOT-EXISTS     TO TRUE                       
                   MOVE CARD-ACCT-ID     TO WS-CA-LAST-CARD-ACCT-ID              
@@ -1255,8 +1209,7 @@
            END-EVALUATE                                                         
            END-PERFORM                                                          
                                                                                 
-           EXEC CICS ENDBR FILE(LIT-CARD-FILE)                                  
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        9000-READ-FORWARD-EXIT.                                                  
            EXIT                                                                 
@@ -1270,14 +1223,7 @@
       *****************************************************************         
       *    Start Browse                                                         
       *****************************************************************         
-           EXEC CICS STARTBR                                                    
-                DATASET(LIT-CARD-FILE)                                          
-                RIDFLD(WS-CARD-RID-CARDNUM)                                     
-                KEYLENGTH(LENGTH OF WS-CARD-RID-CARDNUM)                        
-                GTEQ                                                            
-                RESP(WS-RESP-CD)                                                
-                RESP2(WS-REAS-CD)                                               
-           END-EXEC                                                             
+           CONTINUE                                                             
       *****************************************************************         
       *    Loop through records and fetch max screen records                    
       *****************************************************************         
@@ -1291,19 +1237,11 @@
       *    Now we show the records from previous set.                           
       *****************************************************************         
                                                                                 
-           EXEC CICS READPREV                                                   
-                DATASET(LIT-CARD-FILE)                                          
-                INTO (CARD-RECORD)                                              
-                LENGTH(LENGTH OF CARD-RECORD)                                   
-                RIDFLD(WS-CARD-RID-CARDNUM)                                     
-                KEYLENGTH(LENGTH OF WS-CARD-RID-CARDNUM)                        
-                RESP(WS-RESP-CD)                                                
-                RESP2(WS-REAS-CD)                                               
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
-               WHEN DFHRESP(DUPREC)                                             
+               WHEN DFHRESP-NORMAL                                             
+               WHEN DFHRESP-DUPREC                                             
                    SUBTRACT 1          FROM WS-SCRN-COUNTER                     
                WHEN OTHER                                                       
       *           This is some kind of error. Change to END BR                  
@@ -1319,19 +1257,11 @@
                                                                                 
            PERFORM UNTIL READ-LOOP-EXIT                                         
                                                                                 
-           EXEC CICS READPREV                                                   
-                DATASET(LIT-CARD-FILE)                                          
-                INTO (CARD-RECORD)                                              
-                LENGTH(LENGTH OF CARD-RECORD)                                   
-                RIDFLD(WS-CARD-RID-CARDNUM)                                     
-                KEYLENGTH(LENGTH OF WS-CARD-RID-CARDNUM)                        
-                RESP(WS-RESP-CD)                                                
-                RESP2(WS-REAS-CD)                                               
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
-               WHEN DFHRESP(DUPREC)                                             
+               WHEN DFHRESP-NORMAL                                             
+               WHEN DFHRESP-DUPREC                                             
                    PERFORM 9500-FILTER-RECORDS                                  
                       THRU 9500-FILTER-RECORDS-EXIT                             
                    IF WS-DONOT-EXCLUDE-THIS-RECORD                              
@@ -1372,9 +1302,7 @@
            .                                                                    
                                                                                 
        9100-READ-BACKWARDS-EXIT.                                                
-           EXEC CICS                                                            
-                ENDBR FILE(LIT-CARD-FILE)                                       
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EXIT                                                                 
            .                                                                    
@@ -1420,15 +1348,9 @@
       * Plain text exit - Dont use in production                      *         
       *****************************************************************         
        SEND-PLAIN-TEXT.                                                         
-           EXEC CICS SEND TEXT                                                  
-                     FROM(WS-ERROR-MSG)                                         
-                     LENGTH(LENGTH OF WS-ERROR-MSG)                             
-                     ERASE                                                      
-                     FREEKB                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        SEND-PLAIN-TEXT-EXIT.                                                    
            EXIT                                                                 
@@ -1439,15 +1361,9 @@
       * regular course                                                *         
       *****************************************************************         
        SEND-LONG-TEXT.                                                          
-           EXEC CICS SEND TEXT                                                  
-                     FROM(WS-LONG-MSG)                                          
-                     LENGTH(LENGTH OF WS-LONG-MSG)                              
-                     ERASE                                                      
-                     FREEKB                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        SEND-LONG-TEXT-EXIT.                                                     
            EXIT                                                                 

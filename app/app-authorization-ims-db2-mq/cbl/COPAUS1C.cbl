@@ -27,7 +27,8 @@
        CONFIGURATION SECTION.                                                   
                                                                                 
        DATA DIVISION.                                                           
-       WORKING-STORAGE SECTION.                                                 
+       WORKING-STORAGE SECTION.
+       01  DIBSTAT PIC X(2) VALUE SPACES.                                                 
                                                                                 
        01 WS-VARIABLES.                                                         
          05 WS-PGM-AUTH-DTL            PIC X(08) VALUE 'COPAUS1C'.              
@@ -147,11 +148,12 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
 
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
        PROCEDURE DIVISION.
        MAIN-PARA.
@@ -199,10 +201,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-CICS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC
+           CONTINUE
            .
 
        PROCESS-ENTER-KEY.
@@ -245,12 +244,8 @@
            MOVE CDEMO-ACCT-ID               TO WS-FRD-ACCT-ID
            MOVE CDEMO-CUST-ID               TO WS-FRD-CUST-ID
 
-           EXEC CICS LINK
-                PROGRAM(WS-PGM-AUTH-FRAUD)
-                COMMAREA(WS-FRAUD-DATA)
-                NOHANDLE
-           END-EXEC
-           IF EIBRESP = DFHRESP(NORMAL)
+           CONTINUE
+           IF EIBRESP = DFHRESP-NORMAL
               IF WS-FRD-UPDT-SUCCESS
                  PERFORM UPDATE-AUTH-DETAILS
               ELSE
@@ -364,10 +359,7 @@
            MOVE ZEROS          TO CDEMO-PGM-CONTEXT
            SET CDEMO-PGM-ENTER TO TRUE
 
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-               COMMAREA(CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
 
        SEND-AUTHVIEW-SCREEN.
@@ -378,31 +370,15 @@
            MOVE -1       TO CARDNUML
 
            IF SEND-ERASE-YES
-              EXEC CICS SEND
-                     MAP('COPAU1A')
-                     MAPSET('COPAU01')
-                     FROM(COPAU1AO)
-                     ERASE
-                     CURSOR
-              END-EXEC
+              CONTINUE
            ELSE
-              EXEC CICS SEND
-                     MAP('COPAU1A')
-                     MAPSET('COPAU01')
-                     FROM(COPAU1AO)
-                     CURSOR
-              END-EXEC
+              CONTINUE
            END-IF
            .
 
        RECEIVE-AUTHVIEW-SCREEN.
 
-           EXEC CICS RECEIVE
-                     MAP('COPAU1A')
-                     MAPSET('COPAU01')
-                     INTO(COPAU1AI)
-                     NOHANDLE
-           END-EXEC
+           CONTINUE
            .
 
 
@@ -436,11 +412,7 @@
            MOVE WS-ACCT-ID                TO PA-ACCT-ID
            MOVE WS-AUTH-KEY               TO PA-AUTHORIZATION-KEY
 
-           EXEC DLI GU USING PCB(PAUT-PCB-NUM)
-               SEGMENT (PAUTSUM0)
-               INTO (PENDING-AUTH-SUMMARY)
-               WHERE (ACCNTID = PA-ACCT-ID)
-           END-EXEC
+           CONTINUE
 
            MOVE DIBSTAT                          TO IMS-RETURN-CODE
            EVALUATE TRUE
@@ -462,11 +434,7 @@
            END-EVALUATE
 
            IF AUTHS-NOT-EOF
-              EXEC DLI GNP USING PCB(PAUT-PCB-NUM)
-                  SEGMENT (PAUTDTL1)
-                  INTO (PENDING-AUTH-DETAILS)
-                  WHERE (PAUT9CTS = PA-AUTHORIZATION-KEY)
-              END-EXEC
+              CONTINUE
 
               MOVE DIBSTAT                          TO IMS-RETURN-CODE
               EVALUATE TRUE
@@ -492,10 +460,7 @@
 
        READ-NEXT-AUTH-RECORD.
 
-           EXEC DLI GNP USING PCB(PAUT-PCB-NUM)
-               SEGMENT (PAUTDTL1)
-               INTO (PENDING-AUTH-DETAILS)
-           END-EXEC
+           CONTINUE
 
            MOVE DIBSTAT                          TO IMS-RETURN-CODE
            EVALUATE TRUE
@@ -522,10 +487,7 @@
            MOVE WS-FRAUD-AUTH-RECORD           TO PENDING-AUTH-DETAILS
            DISPLAY 'RPT DT: ' PA-FRAUD-RPT-DATE
 
-           EXEC DLI REPL USING PCB(PAUT-PCB-NUM)
-                SEGMENT (PAUTDTL1)
-                FROM (PENDING-AUTH-DETAILS)
-           END-EXEC
+           CONTINUE
 
            MOVE DIBSTAT                        TO IMS-RETURN-CODE
            EVALUATE TRUE
@@ -555,36 +517,26 @@
       * TAKE SYNCPOINT                                                *
       *****************************************************************
        TAKE-SYNCPOINT.
-           EXEC CICS SYNCPOINT
-           END-EXEC
+           CONTINUE
            .
 
       *****************************************************************
       * ROLLBACK THE DB CHANGES                                       *
       *****************************************************************
        ROLL-BACK.
-           EXEC CICS
-              SYNCPOINT ROLLBACK
-           END-EXEC
+           CONTINUE
            .
 
       *****************************************************************
       * SCHEDULE PSB                                                  *
       *****************************************************************
        SCHEDULE-PSB.
-           EXEC DLI SCHD
-                PSB((PSB-NAME))
-                NODHABEND
-           END-EXEC
+           CONTINUE
            MOVE DIBSTAT        TO IMS-RETURN-CODE
            IF PSB-SCHEDULED-MORE-THAN-ONCE
-              EXEC DLI TERM
-              END-EXEC
+              CONTINUE
 
-              EXEC DLI SCHD
-                   PSB((PSB-NAME))
-                   NODHABEND
-              END-EXEC
+              CONTINUE
               MOVE DIBSTAT     TO IMS-RETURN-CODE
            END-IF
            IF STATUS-OK

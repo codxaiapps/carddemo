@@ -37,6 +37,7 @@
       *
       *----------------------------------------------------------------*
        WORKING-STORAGE SECTION.
+       01  DIBSTAT PIC X(2) VALUE SPACES.
       *----------------------------------------------------------------*
        01 WS-VARIABLES.
          05 WS-PGMNAME                 PIC X(08) VALUE 'CBPAUP0C'.
@@ -220,10 +221,7 @@
                DISPLAY 'DEBUG: AUTH SMRY READ : ' WS-NO-SUMRY-READ
             END-IF
 
-            EXEC DLI GN USING PCB(PAUT-PCB-NUM)
-                 SEGMENT (PAUTSUM0)
-                 INTO (PENDING-AUTH-SUMMARY)
-            END-EXEC
+            CONTINUE
 
             EVALUATE DIBSTAT
                WHEN '  '
@@ -252,10 +250,7 @@
                DISPLAY 'DEBUG: AUTH DTL READ : ' WS-NO-DTL-READ
             END-IF
 
-            EXEC DLI GNP USING PCB(PAUT-PCB-NUM)
-                 SEGMENT (PAUTDTL1)
-                 INTO (PENDING-AUTH-DETAILS)
-            END-EXEC
+            CONTINUE
             EVALUATE DIBSTAT
                WHEN '  '
                     SET MORE-AUTHS       TO TRUE
@@ -307,10 +302,7 @@
                DISPLAY 'DEBUG: AUTH DTL DLET : ' PA-ACCT-ID
             END-IF
 
-            EXEC DLI DLET USING PCB(PAUT-PCB-NUM)
-                 SEGMENT (PAUTDTL1)
-                 FROM (PENDING-AUTH-DETAILS)
-            END-EXEC
+            CONTINUE
 
             IF DIBSTAT = SPACES
                ADD 1                     TO WS-NO-DTL-DELETED
@@ -332,10 +324,7 @@
                DISPLAY 'DEBUG: AUTH SMRY DLET : ' PA-ACCT-ID
             END-IF
 
-            EXEC DLI DLET USING PCB(PAUT-PCB-NUM)
-                 SEGMENT (PAUTSUM0)
-                 FROM (PENDING-AUTH-SUMMARY)
-            END-EXEC
+            CONTINUE
 
             IF DIBSTAT = SPACES
                ADD 1                     TO WS-NO-SUMRY-DELETED
@@ -352,8 +341,7 @@
        9000-TAKE-CHECKPOINT.
       *----------------------------------------------------------------*
       *
-           EXEC DLI CHKP ID(WK-CHKPT-ID)
-           END-EXEC
+           CONTINUE
       *
            IF DIBSTAT = SPACES
               ADD 1                      TO WS-NO-CHKP

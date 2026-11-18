@@ -62,12 +62,8 @@
       /****************************************************                     
       * SQL INCLUDE FOR SQLCA                             *                     
       *****************************************************                     
-           EXEC SQL                                                             
-                INCLUDE SQLCA                                                   
-           END-EXEC.                                                            
-           EXEC SQL                                                             
-                INCLUDE AUTHFRDS                                                
-           END-EXEC.                                                            
+           COPY SQLCA.                                                            
+           COPY AUTHFRDS.                                                            
                                                                                 
                                                                                 
        LINKAGE SECTION.                                                         
@@ -88,16 +84,8 @@
        PROCEDURE DIVISION.                                                      
        MAIN-PARA.                                                               
                                                                                 
-           EXEC CICS ASKTIME NOHANDLE                                           
-              ABSTIME(WS-ABS-TIME)                                              
-              NOHANDLE                                                          
-           END-EXEC                                                             
-           EXEC CICS FORMATTIME                                                 
-             ABSTIME(WS-ABS-TIME)                                               
-             MMDDYY(WS-CUR-DATE)                                                
-             DATESEP                                                            
-             NOHANDLE                                                           
-           END-EXEC                                                             
+           CONTINUE                                                             
+           CONTINUE                                                             
            MOVE WS-CUR-DATE       TO PA-FRAUD-RPT-DATE                          
                                                                                 
            MOVE PA-AUTH-ORIG-DATE(1:2) TO WS-AUTH-YY                            
@@ -138,64 +126,7 @@
            MOVE WS-ACCT-ID           TO ACCT-ID                                 
            MOVE WS-CUST-ID           TO CUST-ID                                 
                                                                                 
-           EXEC SQL                                                             
-                INSERT INTO CARDDEMO.AUTHFRDS
-                      (CARD_NUM                                                 
-                      ,AUTH_TS                                                  
-                      ,AUTH_TYPE                                                
-                      ,CARD_EXPIRY_DATE                                         
-                      ,MESSAGE_TYPE                                             
-                      ,MESSAGE_SOURCE                                           
-                      ,AUTH_ID_CODE                                             
-                      ,AUTH_RESP_CODE                                           
-                      ,AUTH_RESP_REASON                                         
-                      ,PROCESSING_CODE                                          
-                      ,TRANSACTION_AMT                                          
-                      ,APPROVED_AMT                                             
-                      ,MERCHANT_CATAGORY_CODE                                   
-                      ,ACQR_COUNTRY_CODE                                        
-                      ,POS_ENTRY_MODE                                           
-                      ,MERCHANT_ID                                              
-                      ,MERCHANT_NAME                                            
-                      ,MERCHANT_CITY                                            
-                      ,MERCHANT_STATE                                           
-                      ,MERCHANT_ZIP                                             
-                      ,TRANSACTION_ID                                           
-                      ,MATCH_STATUS                                             
-                      ,AUTH_FRAUD                                               
-                      ,FRAUD_RPT_DATE                                           
-                      ,ACCT_ID                                                  
-                      ,CUST_ID)                                                 
-                  VALUES                                                        
-                    ( :CARD-NUM                                                 
-                     ,TIMESTAMP_FORMAT (:AUTH-TS,                               
-                                        'YY-MM-DD HH24.MI.SSNNNNNN')            
-                     ,:AUTH-TYPE                                                
-                     ,:CARD-EXPIRY-DATE                                         
-                     ,:MESSAGE-TYPE                                             
-                     ,:MESSAGE-SOURCE                                           
-                     ,:AUTH-ID-CODE                                             
-                     ,:AUTH-RESP-CODE                                           
-                     ,:AUTH-RESP-REASON                                         
-                     ,:PROCESSING-CODE                                          
-                     ,:TRANSACTION-AMT                                          
-                     ,:APPROVED-AMT                                             
-                     ,:MERCHANT-CATAGORY-CODE                                   
-                     ,:ACQR-COUNTRY-CODE                                        
-                     ,:POS-ENTRY-MODE                                           
-                     ,:MERCHANT-ID                                              
-                     ,:MERCHANT-NAME                                            
-                     ,:MERCHANT-CITY                                            
-                     ,:MERCHANT-STATE                                           
-                     ,:MERCHANT-ZIP                                             
-                     ,:TRANSACTION-ID                                           
-                     ,:MATCH-STATUS                                             
-                     ,:AUTH-FRAUD                                               
-                     ,CURRENT DATE                                              
-                     ,:ACCT-ID                                                  
-                     ,:CUST-ID                                                  
-                    )                                                           
-           END-EXEC                                                             
+           CONTINUE                                                             
            IF SQLCODE = ZERO                                                    
               SET WS-FRD-UPDT-SUCCESS TO TRUE                                   
               MOVE 'ADD SUCCESS'      TO WS-FRD-ACT-MSG                         
@@ -215,18 +146,10 @@
               END-IF                                                            
            END-IF                                                               
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        FRAUD-UPDATE.                                                            
-           EXEC SQL                                                             
-                UPDATE CARDDEMO.AUTHFRDS
-                   SET   AUTH_FRAUD     = :AUTH-FRAUD,                          
-                         FRAUD_RPT_DATE = CURRENT DATE                          
-                   WHERE CARD_NUM = :CARD-NUM                                   
-                     AND AUTH_TS  = TIMESTAMP_FORMAT (:AUTH-TS,                 
-                                           'YY-MM-DD HH24.MI.SSNNNNNN')         
-           END-EXEC                                                             
+           CONTINUE                                                             
            IF SQLCODE = ZERO                                                    
               SET WS-FRD-UPDT-SUCCESS TO TRUE                                   
               MOVE 'UPDT SUCCESS'     TO WS-FRD-ACT-MSG                         

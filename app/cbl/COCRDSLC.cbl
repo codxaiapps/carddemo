@@ -205,7 +205,9 @@
        01  WS-COMMAREA                             PIC X(2000).                 
                                                                                 
       *IBM SUPPLIED COPYBOOKS                                                   
-       COPY DFHBMSCA.                                                           
+       COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.                                                           
        COPY DFHAID.                                                             
                                                                                 
       *COMMON COPYBOOKS                                                         
@@ -240,16 +242,13 @@
        COPY CVCUS01Y.                                                           
                                                                                 
        LINKAGE SECTION.                                                         
-       01  DFHCOMMAREA.                                                         
-         05  FILLER                                PIC X(1)                     
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.                     
+       01  DFHCOMMAREA.
+         05  LK-COMMAREA                           PIC X(2000).                     
                                                                                 
        PROCEDURE DIVISION.                                                      
        0000-MAIN.                                                               
                                                                                 
-           EXEC CICS HANDLE ABEND                                               
-                     LABEL(ABEND-ROUTINE)                                       
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            INITIALIZE CC-WORK-AREA                                              
                       WS-MISC-STORAGE                                           
@@ -328,10 +327,7 @@
                    MOVE LIT-THISMAPSET     TO CDEMO-LAST-MAPSET                 
                    MOVE LIT-THISMAP        TO CDEMO-LAST-MAP                    
       *                                                                         
-                   EXEC CICS XCTL                                               
-                             PROGRAM (CDEMO-TO-PROGRAM)                         
-                             COMMAREA(CARDDEMO-COMMAREA)                        
-                   END-EXEC                                                     
+                   CONTINUE                                                     
       ******************************************************************        
       *            COMING FROM CREDIT CARD LIST SCREEN                          
       *            SELECTION CRITERIA ALREADY VALIDATED                         
@@ -399,11 +395,7 @@
                   WS-COMMAREA(LENGTH OF CARDDEMO-COMMAREA + 1:                  
                                LENGTH OF WS-THIS-PROGCOMMAREA )                 
                                                                                 
-           EXEC CICS RETURN                                                     
-                TRANSID (LIT-THISTRANID)                                        
-                COMMAREA (WS-COMMAREA)                                          
-                LENGTH(LENGTH OF WS-COMMAREA)                                   
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        0000-MAIN-EXIT.                                                          
            EXIT                                                                 
@@ -566,14 +558,7 @@
            MOVE LIT-THISMAP            TO CCARD-NEXT-MAP                        
            SET  CDEMO-PGM-REENTER TO TRUE                                       
                                                                                 
-           EXEC CICS SEND MAP(CCARD-NEXT-MAP)                                   
-                          MAPSET(CCARD-NEXT-MAPSET)                             
-                          FROM(CCRDSLAO)                                        
-                          CURSOR                                                
-                          ERASE                                                 
-                          FREEKB                                                
-                          RESP(WS-RESP-CD)                                      
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        1400-SEND-SCREEN-EXIT.                                                   
            EXIT                                                                 
@@ -594,12 +579,7 @@
            EXIT                                                                 
            .                                                                    
        2100-RECEIVE-MAP.                                                        
-           EXEC CICS RECEIVE MAP(LIT-THISMAP)                                   
-                     MAPSET(LIT-THISMAPSET)                                     
-                     INTO(CCRDSLAI)                                             
-                     RESP(WS-RESP-CD)                                           
-                     RESP2(WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
                                                                                 
        2100-RECEIVE-MAP-EXIT.                                                   
@@ -739,20 +719,12 @@
       *    MOVE CC-ACCT-ID-N      TO WS-CARD-RID-ACCT-ID                        
            MOVE CC-CARD-NUM       TO WS-CARD-RID-CARDNUM                        
                                                                                 
-           EXEC CICS READ                                                       
-                FILE      (LIT-CARDFILENAME)                                    
-                RIDFLD    (WS-CARD-RID-CARDNUM)                                 
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CARDNUM)                       
-                INTO      (CARD-RECORD)                                         
-                LENGTH    (LENGTH OF CARD-RECORD)                               
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                   SET FOUND-CARDS-FOR-ACCOUNT TO TRUE                           
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                   SET INPUT-ERROR                    TO TRUE                    
                   SET FLG-ACCTFILTER-NOT-OK          TO TRUE                    
                   SET FLG-CARDFILTER-NOT-OK          TO TRUE                    
@@ -780,20 +752,12 @@
                                                                                 
       *    Read the Card file. Access via alternate index ACCTID                
       *                                                                         
-           EXEC CICS READ                                                       
-                FILE      (LIT-CARDFILENAME-ACCT-PATH)                          
-                RIDFLD    (WS-CARD-RID-ACCT-ID)                                 
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID)                       
-                INTO      (CARD-RECORD)                                         
-                LENGTH    (LENGTH OF CARD-RECORD)                               
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                   SET FOUND-CARDS-FOR-ACCOUNT TO TRUE                           
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                   SET INPUT-ERROR                 TO TRUE                       
                   SET FLG-ACCTFILTER-NOT-OK                TO TRUE              
                   SET DID-NOT-FIND-ACCT-IN-CARDXREF TO TRUE                     
@@ -818,15 +782,9 @@
       * regular course                                                *         
       *****************************************************************         
        SEND-LONG-TEXT.                                                          
-           EXEC CICS SEND TEXT                                                  
-                     FROM(WS-LONG-MSG)                                          
-                     LENGTH(LENGTH OF WS-LONG-MSG)                              
-                     ERASE                                                      
-                     FREEKB                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        SEND-LONG-TEXT-EXIT.                                                     
            EXIT                                                                 
@@ -836,15 +794,9 @@
       * Plain text exit - Dont use in production                      *         
       *****************************************************************         
        SEND-PLAIN-TEXT.                                                         
-           EXEC CICS SEND TEXT                                                  
-                     FROM(WS-RETURN-MSG)                                        
-                     LENGTH(LENGTH OF WS-RETURN-MSG)                            
-                     ERASE                                                      
-                     FREEKB                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        SEND-PLAIN-TEXT-EXIT.                                                    
            EXIT                                                                 
@@ -862,19 +814,11 @@
                                                                                 
            MOVE LIT-THISPGM       TO ABEND-CULPRIT                              
                                                                                 
-           EXEC CICS SEND                                                       
-                            FROM (ABEND-DATA)                                   
-                            LENGTH(LENGTH OF ABEND-DATA)                        
-                            NOHANDLE                                            
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS HANDLE ABEND                                               
-                CANCEL                                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS ABEND                                                      
-                ABCODE('9999')                                                  
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
                                                                                 
                                                                                 

@@ -83,14 +83,15 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
 
       *----------------------------------------------------------------*
       *                        LINKAGE SECTION
       *----------------------------------------------------------------*
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
       *----------------------------------------------------------------*
       *                       PROCEDURE DIVISION
@@ -143,10 +144,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      PROCESS-ENTER-KEY
@@ -248,17 +246,9 @@
       *----------------------------------------------------------------*
        GET-CURRENT-TIMESTAMP.
 
-           EXEC CICS ASKTIME
-             ABSTIME(WS-ABS-TIME)
-           END-EXEC
+           CONTINUE
 
-           EXEC CICS FORMATTIME
-             ABSTIME(WS-ABS-TIME)
-             YYYYMMDD(WS-CUR-DATE-X10)
-             DATESEP('-')
-             TIME(WS-CUR-TIME-X08)
-             TIMESEP(':')
-           END-EXEC
+           CONTINUE
 
            INITIALIZE WS-TIMESTAMP
            MOVE WS-CUR-DATE-X10 TO WS-TIMESTAMP(01:10)
@@ -278,10 +268,7 @@
            MOVE WS-TRANID    TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
            MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-               COMMAREA(CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      SEND-BILLPAY-SCREEN
@@ -292,26 +279,14 @@
 
            MOVE WS-MESSAGE TO ERRMSGO OF COBIL0AO
 
-           EXEC CICS SEND
-                     MAP('COBIL0A')
-                     MAPSET('COBIL00')
-                     FROM(COBIL0AO)
-                     ERASE
-                     CURSOR
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      RECEIVE-BILLPAY-SCREEN
       *----------------------------------------------------------------*
        RECEIVE-BILLPAY-SCREEN.
 
-           EXEC CICS RECEIVE
-                     MAP('COBIL0A')
-                     MAPSET('COBIL00')
-                     INTO(COBIL0AI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO
@@ -342,21 +317,12 @@
       *----------------------------------------------------------------*
        READ-ACCTDAT-FILE.
 
-           EXEC CICS READ
-                DATASET   (WS-ACCTDAT-FILE)
-                INTO      (ACCOUNT-RECORD)
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)
-                RIDFLD    (ACCT-ID)
-                KEYLENGTH (LENGTH OF ACCT-ID)
-                UPDATE
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Account ID NOT found...' TO
                                    WS-MESSAGE
@@ -376,18 +342,12 @@
       *----------------------------------------------------------------*
        UPDATE-ACCTDAT-FILE.
 
-           EXEC CICS REWRITE
-                DATASET   (WS-ACCTDAT-FILE)
-                FROM      (ACCOUNT-RECORD)
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Account ID NOT found...' TO
                                    WS-MESSAGE
@@ -407,20 +367,12 @@
       *----------------------------------------------------------------*
        READ-CXACAIX-FILE.
 
-           EXEC CICS READ
-                DATASET   (WS-CXACAIX-FILE)
-                INTO      (CARD-XREF-RECORD)
-                LENGTH    (LENGTH OF CARD-XREF-RECORD)
-                RIDFLD    (XREF-ACCT-ID)
-                KEYLENGTH (LENGTH OF XREF-ACCT-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Account ID NOT found...' TO
                                    WS-MESSAGE
@@ -440,18 +392,12 @@
       *----------------------------------------------------------------*
        STARTBR-TRANSACT-FILE.
 
-           EXEC CICS STARTBR
-                DATASET   (WS-TRANSACT-FILE)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Transaction ID NOT found...' TO
                                    WS-MESSAGE
@@ -471,20 +417,12 @@
       *----------------------------------------------------------------*
        READPREV-TRANSACT-FILE.
 
-           EXEC CICS READPREV
-                DATASET   (WS-TRANSACT-FILE)
-                INTO      (TRAN-RECORD)
-                LENGTH    (LENGTH OF TRAN-RECORD)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(ENDFILE)
+               WHEN DFHRESP-ENDFILE
                    MOVE ZEROS TO TRAN-ID
                WHEN OTHER
                    DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD
@@ -500,27 +438,17 @@
       *----------------------------------------------------------------*
        ENDBR-TRANSACT-FILE.
 
-           EXEC CICS ENDBR
-                DATASET   (WS-TRANSACT-FILE)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      WRITE-TRANSACT-FILE
       *----------------------------------------------------------------*
        WRITE-TRANSACT-FILE.
 
-           EXEC CICS WRITE
-                DATASET   (WS-TRANSACT-FILE)
-                FROM      (TRAN-RECORD)
-                LENGTH    (LENGTH OF TRAN-RECORD)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    PERFORM INITIALIZE-ALL-FIELDS
                    MOVE SPACES             TO WS-MESSAGE
                    MOVE DFHGREEN           TO ERRMSGC  OF COBIL0AO
@@ -530,8 +458,8 @@
                           '.' DELIMITED BY SIZE
                      INTO WS-MESSAGE
                    PERFORM SEND-BILLPAY-SCREEN
-               WHEN DFHRESP(DUPKEY)
-               WHEN DFHRESP(DUPREC)
+               WHEN DFHRESP-DUPKEY
+               WHEN DFHRESP-DUPREC
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Tran ID already exist...' TO
                                    WS-MESSAGE

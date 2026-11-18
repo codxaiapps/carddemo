@@ -56,6 +56,8 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
       *COPY DFHATTR.
 
       *----------------------------------------------------------------*
@@ -63,8 +65,7 @@
       *----------------------------------------------------------------*
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
       *----------------------------------------------------------------*
       *                      PROCEDURE DIVISION
@@ -95,11 +96,7 @@
                END-EVALUATE
            END-IF.
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-                     LENGTH(LENGTH OF CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
 
       *----------------------------------------------------------------*
@@ -107,12 +104,7 @@
       *----------------------------------------------------------------*
        PROCESS-ENTER-KEY.
 
-           EXEC CICS RECEIVE
-                     MAP('COSGN0A')
-                     MAPSET('COSGN00')
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE TRUE
                WHEN USERIDI OF COSGN0AI = SPACES OR LOW-VALUES
@@ -148,28 +140,16 @@
 
            MOVE WS-MESSAGE TO ERRMSGO OF COSGN0AO
 
-           EXEC CICS SEND
-                     MAP('COSGN0A')
-                     MAPSET('COSGN00')
-                     FROM(COSGN0AO)
-                     ERASE
-                     CURSOR
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      SEND-PLAIN-TEXT
       *----------------------------------------------------------------*
        SEND-PLAIN-TEXT.
 
-           EXEC CICS SEND TEXT
-                     FROM(WS-MESSAGE)
-                     LENGTH(LENGTH OF WS-MESSAGE)
-                     ERASE
-                     FREEKB
-           END-EXEC.
+           CONTINUE.
 
-           EXEC CICS RETURN
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO
@@ -195,28 +175,16 @@
 
            MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COSGN0AO
 
-           EXEC CICS ASSIGN
-               APPLID(APPLIDO OF COSGN0AO)
-           END-EXEC
+           CONTINUE
 
-           EXEC CICS ASSIGN
-               SYSID(SYSIDO OF COSGN0AO)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      READ-USER-SEC-FILE
       *----------------------------------------------------------------*
        READ-USER-SEC-FILE.
 
-           EXEC CICS READ
-                DATASET   (WS-USRSEC-FILE)
-                INTO      (SEC-USER-DATA)
-                LENGTH    (LENGTH OF SEC-USER-DATA)
-                RIDFLD    (WS-USER-ID)
-                KEYLENGTH (LENGTH OF WS-USER-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE WS-RESP-CD
                WHEN 0
@@ -228,15 +196,9 @@
                        MOVE ZEROS        TO CDEMO-PGM-CONTEXT
 
                        IF CDEMO-USRTYP-ADMIN
-                            EXEC CICS XCTL
-                              PROGRAM ('COADM01C')
-                              COMMAREA(CARDDEMO-COMMAREA)
-                            END-EXEC
+                            CONTINUE
                        ELSE
-                            EXEC CICS XCTL
-                              PROGRAM ('COMEN01C')
-                              COMMAREA(CARDDEMO-COMMAREA)
-                            END-EXEC
+                            CONTINUE
                        END-IF
                    ELSE
                        MOVE 'Wrong Password. Try again ...' TO

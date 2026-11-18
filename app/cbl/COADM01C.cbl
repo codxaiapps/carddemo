@@ -58,15 +58,16 @@
        COPY CSUSR01Y.                                                           
                                                                                 
        COPY DFHAID.                                                             
-       COPY DFHBMSCA.                                                           
+       COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.                                                           
                                                                                 
       *----------------------------------------------------------------*        
       *                        LINKAGE SECTION                                  
       *----------------------------------------------------------------*        
        LINKAGE SECTION.                                                         
-       01  DFHCOMMAREA.                                                         
-         05  LK-COMMAREA                           PIC X(01)                    
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.                     
+       01  DFHCOMMAREA.
+         05  LK-COMMAREA                           PIC X(2000).                     
                                                                                 
       *----------------------------------------------------------------*        
       *                       PROCEDURE DIVISION                                
@@ -74,9 +75,7 @@
        PROCEDURE DIVISION.                                                      
        MAIN-PARA.                                                               
                                                                                 
-           EXEC CICS
-                HANDLE CONDITION PGMIDERR(PGMIDERR-ERR-PARA)
-           END-EXEC
+           CONTINUE
 
            SET ERR-FLG-OFF TO TRUE                                              
                                                                                 
@@ -108,10 +107,7 @@
                END-IF                                                           
            END-IF                                                               
                                                                                 
-           EXEC CICS RETURN                                                     
-                     TRANSID (WS-TRANID)                                        
-                     COMMAREA (CARDDEMO-COMMAREA)                               
-           END-EXEC.                                                            
+           CONTINUE.                                                            
                                                                                 
       *----------------------------------------------------------------*        
       *                      PROCESS-ENTER-KEY                                  
@@ -142,10 +138,7 @@
                    MOVE WS-TRANID    TO CDEMO-FROM-TRANID                       
                    MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM                      
                    MOVE ZEROS        TO CDEMO-PGM-CONTEXT                       
-                   EXEC CICS                                                    
-                       XCTL PROGRAM(CDEMO-ADMIN-OPT-PGMNAME(WS-OPTION))         
-                       COMMAREA(CARDDEMO-COMMAREA)                              
-                   END-EXEC                                                     
+                   CONTINUE                                                     
                END-IF                                                           
                MOVE SPACES             TO WS-MESSAGE                            
                MOVE DFHGREEN           TO ERRMSGC  OF COADM1AO                  
@@ -165,9 +158,7 @@
            IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES                           
                MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM                              
            END-IF                                                               
-           EXEC CICS                                                            
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)                                   
-           END-EXEC.                                                            
+           CONTINUE.                                                            
                                                                                 
       *----------------------------------------------------------------*        
       *                      SEND-MENU-SCREEN                                   
@@ -179,25 +170,14 @@
                                                                                 
            MOVE WS-MESSAGE TO ERRMSGO OF COADM1AO                               
                                                                                 
-           EXEC CICS SEND                                                       
-                     MAP('COADM1A')                                             
-                     MAPSET('COADM01')                                          
-                     FROM(COADM1AO)                                             
-                     ERASE                                                      
-           END-EXEC.                                                            
+           CONTINUE.                                                            
                                                                                 
       *----------------------------------------------------------------*        
       *                      RECEIVE-MENU-SCREEN                                
       *----------------------------------------------------------------*        
        RECEIVE-MENU-SCREEN.                                                     
                                                                                 
-           EXEC CICS RECEIVE                                                    
-                     MAP('COADM1A')                                             
-                     MAPSET('COADM01')                                          
-                     INTO(COADM1AI)                                             
-                     RESP(WS-RESP-CD)                                           
-                     RESP2(WS-REAS-CD)                                          
-           END-EXEC.                                                            
+           CONTINUE.                                                            
                                                                                 
       *----------------------------------------------------------------*        
       *                      POPULATE-HEADER-INFO                               
@@ -277,10 +257,7 @@
            INTO WS-MESSAGE
                                                                                 
            PERFORM SEND-MENU-SCREEN
-           EXEC CICS RETURN                                                     
-                     TRANSID (WS-TRANID)                                        
-                     COMMAREA (CARDDEMO-COMMAREA)                               
-           END-EXEC.
+           CONTINUE.
            .
                                                                                 
       *                                                                         

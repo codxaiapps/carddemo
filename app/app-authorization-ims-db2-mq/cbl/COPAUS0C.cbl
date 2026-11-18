@@ -27,7 +27,8 @@
        CONFIGURATION SECTION.                                                   
                                                                                 
        DATA DIVISION.                                                           
-       WORKING-STORAGE SECTION.                                                 
+       WORKING-STORAGE SECTION.
+       01  DIBSTAT PIC X(2) VALUE SPACES.                                                 
                                                                                 
        01 WS-VARIABLES.                                                         
          05 WS-PGM-AUTH-SMRY           PIC X(08) VALUE 'COPAUS0C'.              
@@ -167,11 +168,12 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
 
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
        PROCEDURE DIVISION.
       *****************************************************************
@@ -251,10 +253,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-CICS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
 
       *****************************************************************
@@ -319,10 +318,7 @@
                         MOVE 0                TO CDEMO-PGM-CONTEXT
                         SET CDEMO-PGM-ENTER   TO TRUE
 
-                        EXEC CICS
-                            XCTL PROGRAM(CDEMO-TO-PROGRAM)
-                            COMMAREA(CARDDEMO-COMMAREA)
-                        END-EXEC
+                        CONTINUE
                      WHEN OTHER
                        MOVE
                        'Invalid selection. Valid value is S'
@@ -458,10 +454,7 @@
        GET-AUTHORIZATIONS.
       *****************************************************************
 
-           EXEC DLI GNP USING PCB(PAUT-PCB-NUM)
-               SEGMENT (PAUTDTL1)
-               INTO (PENDING-AUTH-DETAILS)
-           END-EXEC
+           CONTINUE
 
            MOVE DIBSTAT                          TO IMS-RETURN-CODE
            EVALUATE TRUE
@@ -490,11 +483,7 @@
 
            MOVE WS-AUTH-KEY-SAVE          TO PA-AUTHORIZATION-KEY
 
-           EXEC DLI GNP USING PCB(PAUT-PCB-NUM)
-               SEGMENT (PAUTDTL1)
-               INTO (PENDING-AUTH-DETAILS)
-               WHERE (PAUT9CTS = PA-AUTHORIZATION-KEY)
-           END-EXEC
+           CONTINUE
 
            MOVE DIBSTAT                          TO IMS-RETURN-CODE
            EVALUATE TRUE
@@ -671,10 +660,7 @@
            MOVE WS-CICS-TRANID  TO CDEMO-FROM-TRANID
            MOVE WS-PGM-AUTH-SMRY TO CDEMO-FROM-PROGRAM
            MOVE ZEROS           TO CDEMO-PGM-CONTEXT
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-               COMMAREA(CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
 
       *****************************************************************
@@ -683,8 +669,7 @@
 
            IF IMS-PSB-SCHD
               SET IMS-PSB-NOT-SCHD      TO TRUE
-              EXEC CICS SYNCPOINT
-              END-EXEC
+              CONTINUE
            END-IF
 
            PERFORM POPULATE-HEADER-INFO
@@ -692,33 +677,16 @@
            MOVE WS-MESSAGE TO ERRMSGO OF COPAU0AO
 
            IF SEND-ERASE-YES
-               EXEC CICS SEND
-                         MAP('COPAU0A')
-                         MAPSET('COPAU00')
-                         FROM(COPAU0AO)
-                         ERASE
-                         CURSOR
-               END-EXEC
+               CONTINUE
            ELSE
-               EXEC CICS SEND
-                         MAP('COPAU0A')
-                         MAPSET('COPAU00')
-                         FROM(COPAU0AO)
-                         CURSOR
-               END-EXEC
+               CONTINUE
            END-IF.
 
       *****************************************************************
        RECEIVE-PAULST-SCREEN.
       *****************************************************************
 
-           EXEC CICS RECEIVE
-                     MAP('COPAU0A')
-                     MAPSET('COPAU00')
-                     INTO(COPAU0AI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC
+           CONTINUE
            .
 
 
@@ -815,21 +783,13 @@
       *    Read the Card file. Access via alternate index ACCTID
       *
            MOVE WS-ACCT-ID          TO WS-CARD-RID-ACCT-ID-X
-           EXEC CICS READ
-                DATASET   (WS-CARDXREFNAME-ACCT-PATH)
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
-                INTO      (CARD-XREF-RECORD)
-                LENGTH    (LENGTH OF CARD-XREF-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                   MOVE XREF-CUST-ID               TO CDEMO-CUST-ID
                   MOVE XREF-CARD-NUM              TO CDEMO-CARD-NUM
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                   MOVE WS-RESP-CD        TO WS-RESP-CD-DIS
                   MOVE WS-REAS-CD        TO WS-REAS-CD-DIS
 
@@ -866,20 +826,12 @@
       *****************************************************************
 
            MOVE XREF-ACCT-ID            TO WS-CARD-RID-ACCT-ID
-           EXEC CICS READ
-                DATASET   (WS-ACCTFILENAME)
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
-                INTO      (ACCOUNT-RECORD)
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                   continue
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                   MOVE WS-RESP-CD        TO WS-RESP-CD-DIS
                   MOVE WS-REAS-CD        TO WS-REAS-CD-DIS
 
@@ -917,20 +869,12 @@
 
            MOVE XREF-CUST-ID              TO WS-CARD-RID-CUST-ID
 
-           EXEC CICS READ
-                DATASET   (WS-CUSTFILENAME)
-                RIDFLD    (WS-CARD-RID-CUST-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CUST-ID-X)
-                INTO      (CUSTOMER-RECORD)
-                LENGTH    (LENGTH OF CUSTOMER-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                   CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                   MOVE WS-RESP-CD        TO WS-RESP-CD-DIS
                   MOVE WS-REAS-CD        TO WS-REAS-CD-DIS
 
@@ -970,11 +914,7 @@
 
            MOVE CDEMO-ACCT-ID                   TO PA-ACCT-ID
       *    MOVE XREF-ACCT-ID                    TO PA-ACCT-ID
-           EXEC DLI GU USING PCB(PAUT-PCB-NUM)
-               SEGMENT (PAUTSUM0)
-               INTO (PENDING-AUTH-SUMMARY)
-               WHERE (ACCNTID = PA-ACCT-ID)
-           END-EXEC
+           CONTINUE
 
            MOVE DIBSTAT                          TO IMS-RETURN-CODE
            EVALUATE TRUE
@@ -999,19 +939,12 @@
       * SCHEDULE PSB                                                  *
       *****************************************************************
        SCHEDULE-PSB.
-           EXEC DLI SCHD
-                PSB((PSB-NAME))
-                NODHABEND
-           END-EXEC
+           CONTINUE
            MOVE DIBSTAT        TO IMS-RETURN-CODE
            IF PSB-SCHEDULED-MORE-THAN-ONCE
-              EXEC DLI TERM
-              END-EXEC
+              CONTINUE
 
-              EXEC DLI SCHD
-                   PSB((PSB-NAME))
-                   NODHABEND
-              END-EXEC
+              CONTINUE
               MOVE DIBSTAT     TO IMS-RETURN-CODE
            END-IF
            IF STATUS-OK

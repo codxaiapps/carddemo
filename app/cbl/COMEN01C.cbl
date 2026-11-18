@@ -59,14 +59,15 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
 
       *----------------------------------------------------------------*
       *                        LINKAGE SECTION
       *----------------------------------------------------------------*
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
       *----------------------------------------------------------------*
       *                       PROCEDURE DIVISION
@@ -104,10 +105,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      PROCESS-ENTER-KEY
@@ -145,18 +143,12 @@
            IF NOT ERR-FLG-ON
               EVALUATE TRUE
                 WHEN CDEMO-MENU-OPT-PGMNAME(WS-OPTION) = 'COPAUS0C'
-                   EXEC CICS INQUIRE
-                       PROGRAM(CDEMO-MENU-OPT-PGMNAME(WS-OPTION))
-                       NOHANDLE
-                   END-EXEC
-                   IF EIBRESP = DFHRESP(NORMAL)
+                   CONTINUE
+                   IF EIBRESP = DFHRESP-NORMAL
                       MOVE WS-TRANID    TO CDEMO-FROM-TRANID
                       MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
                       MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-                      EXEC CICS XCTL
-                          PROGRAM(CDEMO-MENU-OPT-PGMNAME(WS-OPTION))
-                          COMMAREA(CARDDEMO-COMMAREA)
-                      END-EXEC
+                      CONTINUE
                    ELSE
                       MOVE SPACES             TO WS-MESSAGE
                       MOVE DFHRED             TO ERRMSGC  OF COMEN1AO
@@ -181,10 +173,7 @@
       *              MOVE WS-USER-ID   TO CDEMO-USER-ID
       *              MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE
                      MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-                     EXEC CICS
-                         XCTL PROGRAM(CDEMO-MENU-OPT-PGMNAME(WS-OPTION))
-                         COMMAREA(CARDDEMO-COMMAREA)
-                     END-EXEC
+                     CONTINUE
               END-EVALUATE
 
               PERFORM SEND-MENU-SCREEN
@@ -198,9 +187,7 @@
            IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES
                MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM
            END-IF
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      SEND-MENU-SCREEN
@@ -212,25 +199,14 @@
 
            MOVE WS-MESSAGE TO ERRMSGO OF COMEN1AO
 
-           EXEC CICS SEND
-                     MAP('COMEN1A')
-                     MAPSET('COMEN01')
-                     FROM(COMEN1AO)
-                     ERASE
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      RECEIVE-MENU-SCREEN
       *----------------------------------------------------------------*
        RECEIVE-MENU-SCREEN.
 
-           EXEC CICS RECEIVE
-                     MAP('COMEN1A')
-                     MAPSET('COMEN01')
-                     INTO(COMEN1AI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO

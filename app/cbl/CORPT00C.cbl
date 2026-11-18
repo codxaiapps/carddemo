@@ -147,14 +147,15 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
 
       *----------------------------------------------------------------*
       *                        LINKAGE SECTION
       *----------------------------------------------------------------*
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
       *----------------------------------------------------------------*
       *                       PROCEDURE DIVISION
@@ -196,10 +197,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
 
       *----------------------------------------------------------------*
@@ -514,16 +512,10 @@
       *----------------------------------------------------------------*
        WIRTE-JOBSUB-TDQ.
 
-           EXEC CICS WRITEQ TD
-             QUEUE ('JOBS')
-             FROM (JCL-RECORD)
-             LENGTH (LENGTH OF JCL-RECORD)
-             RESP(WS-RESP-CD)
-             RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
                WHEN OTHER
                    DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD
@@ -545,10 +537,7 @@
            MOVE WS-TRANID    TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
            MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-               COMMAREA(CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      SEND-TRNRPT-SCREEN
@@ -560,21 +549,9 @@
            MOVE WS-MESSAGE TO ERRMSGO OF CORPT0AO
 
            IF SEND-ERASE-YES
-               EXEC CICS SEND
-                         MAP('CORPT0A')
-                         MAPSET('CORPT00')
-                         FROM(CORPT0AO)
-                         ERASE
-                         CURSOR
-               END-EXEC
+               CONTINUE
            ELSE
-               EXEC CICS SEND
-                         MAP('CORPT0A')
-                         MAPSET('CORPT00')
-                         FROM(CORPT0AO)
-      *                  ERASE
-                         CURSOR
-               END-EXEC
+               CONTINUE
            END-IF.
 
            GO TO RETURN-TO-CICS.
@@ -584,24 +561,14 @@
       *----------------------------------------------------------------*
        RETURN-TO-CICS.
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-      *              LENGTH(LENGTH OF CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      RECEIVE-TRNRPT-SCREEN
       *----------------------------------------------------------------*
        RECEIVE-TRNRPT-SCREEN.
 
-           EXEC CICS RECEIVE
-                     MAP('CORPT0A')
-                     MAPSET('CORPT00')
-                     INTO(CORPT0AI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO

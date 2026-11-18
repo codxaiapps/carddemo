@@ -91,14 +91,15 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
 
       *----------------------------------------------------------------*
       *                        LINKAGE SECTION
       *----------------------------------------------------------------*
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
       *----------------------------------------------------------------*
       *                       PROCEDURE DIVISION
@@ -153,10 +154,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      PROCESS-ENTER-KEY
@@ -505,10 +503,7 @@
            MOVE WS-TRANID    TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
            MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-               COMMAREA(CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      SEND-TRNADD-SCREEN
@@ -519,32 +514,16 @@
 
            MOVE WS-MESSAGE TO ERRMSGO OF COTRN2AO
 
-           EXEC CICS SEND
-                     MAP('COTRN2A')
-                     MAPSET('COTRN02')
-                     FROM(COTRN2AO)
-                     ERASE
-                     CURSOR
-           END-EXEC.
+           CONTINUE.
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-      *              LENGTH(LENGTH OF CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      RECEIVE-TRNADD-SCREEN
       *----------------------------------------------------------------*
        RECEIVE-TRNADD-SCREEN.
 
-           EXEC CICS RECEIVE
-                     MAP('COTRN2A')
-                     MAPSET('COTRN02')
-                     INTO(COTRN2AI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO
@@ -575,20 +554,12 @@
       *----------------------------------------------------------------*
        READ-CXACAIX-FILE.
 
-           EXEC CICS READ
-                DATASET   (WS-CXACAIX-FILE)
-                INTO      (CARD-XREF-RECORD)
-                LENGTH    (LENGTH OF CARD-XREF-RECORD)
-                RIDFLD    (XREF-ACCT-ID)
-                KEYLENGTH (LENGTH OF XREF-ACCT-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Account ID NOT found...' TO
                                    WS-MESSAGE
@@ -608,20 +579,12 @@
       *----------------------------------------------------------------*
        READ-CCXREF-FILE.
 
-           EXEC CICS READ
-                DATASET   (WS-CCXREF-FILE)
-                INTO      (CARD-XREF-RECORD)
-                LENGTH    (LENGTH OF CARD-XREF-RECORD)
-                RIDFLD    (XREF-CARD-NUM)
-                KEYLENGTH (LENGTH OF XREF-CARD-NUM)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Card Number NOT found...' TO
                                    WS-MESSAGE
@@ -641,18 +604,12 @@
       *----------------------------------------------------------------*
        STARTBR-TRANSACT-FILE.
 
-           EXEC CICS STARTBR
-                DATASET   (WS-TRANSACT-FILE)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Transaction ID NOT found...' TO
                                    WS-MESSAGE
@@ -672,20 +629,12 @@
       *----------------------------------------------------------------*
        READPREV-TRANSACT-FILE.
 
-           EXEC CICS READPREV
-                DATASET   (WS-TRANSACT-FILE)
-                INTO      (TRAN-RECORD)
-                LENGTH    (LENGTH OF TRAN-RECORD)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
-               WHEN DFHRESP(ENDFILE)
+               WHEN DFHRESP-ENDFILE
                    MOVE ZEROS TO TRAN-ID
                WHEN OTHER
                    DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD
@@ -701,27 +650,17 @@
       *----------------------------------------------------------------*
        ENDBR-TRANSACT-FILE.
 
-           EXEC CICS ENDBR
-                DATASET   (WS-TRANSACT-FILE)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                    WRITE-TRANSACT-FILE
       *----------------------------------------------------------------*
        WRITE-TRANSACT-FILE.
 
-           EXEC CICS WRITE
-                DATASET   (WS-TRANSACT-FILE)
-                FROM      (TRAN-RECORD)
-                LENGTH    (LENGTH OF TRAN-RECORD)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    PERFORM INITIALIZE-ALL-FIELDS
                    MOVE SPACES             TO WS-MESSAGE
                    MOVE DFHGREEN           TO ERRMSGC  OF COTRN2AO
@@ -732,8 +671,8 @@
                           '.' DELIMITED BY SIZE
                      INTO WS-MESSAGE
                    PERFORM SEND-TRNADD-SCREEN
-               WHEN DFHRESP(DUPKEY)
-               WHEN DFHRESP(DUPREC)
+               WHEN DFHRESP-DUPKEY
+               WHEN DFHRESP-DUPREC
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Tran ID already exist...' TO
                                    WS-MESSAGE

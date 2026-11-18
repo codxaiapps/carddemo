@@ -1,0 +1,14 @@
+.git
+.gitignore
+**/.gitkeep
+**/.DS_Store
+*.md
+!README.md
+!LICENSE
+!NOTICE
+!CODE_OF_CONDUCT.md
+!CONTRIBUTING.md
+INSTRUCOES_VM.md
+docker-compose.yml
+Dockerfile
+.dockerignore

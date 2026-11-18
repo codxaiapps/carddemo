@@ -613,6 +613,8 @@
 
       *IBM SUPPLIED COPYBOOKS
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
        COPY DFHAID.
 
       *COMMON COPYBOOKS
@@ -852,16 +854,13 @@
 
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  FILLER                                PIC X(1)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
        PROCEDURE DIVISION.
        0000-MAIN.
 
 
-           EXEC CICS HANDLE ABEND
-                     LABEL(ABEND-ROUTINE)
-           END-EXEC
+           CONTINUE
 
            INITIALIZE CC-WORK-AREA
                       WS-MISC-STORAGE
@@ -949,14 +948,9 @@
                    MOVE LIT-THISMAPSET     TO CDEMO-LAST-MAPSET
                    MOVE LIT-THISMAP        TO CDEMO-LAST-MAP
 
-                   EXEC CICS
-                        SYNCPOINT
-                   END-EXEC
+                   CONTINUE
       *
-                   EXEC CICS XCTL
-                        PROGRAM (CDEMO-TO-PROGRAM)
-                        COMMAREA(CARDDEMO-COMMAREA)
-                   END-EXEC
+                   CONTINUE
       ******************************************************************
       *       FRESH ENTRY INTO PROGRAM
       *            ASK THE USER FOR THE KEYS TO FETCH CARD TO BE UPDATED
@@ -1012,11 +1006,7 @@
                   WS-COMMAREA(LENGTH OF CARDDEMO-COMMAREA + 1:
                                LENGTH OF WS-THIS-PROGCOMMAREA )
 
-           EXEC CICS RETURN
-                TRANSID (LIT-THISTRANID)
-                COMMAREA (WS-COMMAREA)
-                LENGTH(LENGTH OF WS-COMMAREA)
-           END-EXEC
+           CONTINUE
            .
        0000-MAIN-EXIT.
            EXIT
@@ -1037,12 +1027,7 @@
            EXIT
            .
        1100-RECEIVE-MAP.
-           EXEC CICS RECEIVE MAP(LIT-THISMAP)
-                     MAPSET(LIT-THISMAPSET)
-                     INTO(CACTUPAI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC
+           CONTINUE
       *
            INITIALIZE ACUP-NEW-DETAILS
       ******************************************************************
@@ -3591,14 +3576,7 @@
            MOVE LIT-THISMAPSET         TO CCARD-NEXT-MAPSET
            MOVE LIT-THISMAP            TO CCARD-NEXT-MAP
 
-           EXEC CICS SEND MAP(CCARD-NEXT-MAP)
-                          MAPSET(CCARD-NEXT-MAPSET)
-                          FROM(CACTUPAO)
-                          CURSOR
-                          ERASE
-                          FREEKB
-                          RESP(WS-RESP-CD)
-           END-EXEC
+           CONTINUE
            .
        3400-SEND-SCREEN-EXIT.
            EXIT
@@ -3651,21 +3629,13 @@
 
       *    Read the Card file. Access via alternate index ACCTID
       *
-           EXEC CICS READ
-                DATASET   (LIT-CARDXREFNAME-ACCT-PATH)
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
-                INTO      (CARD-XREF-RECORD)
-                LENGTH    (LENGTH OF CARD-XREF-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                   MOVE XREF-CUST-ID               TO CDEMO-CUST-ID
                   MOVE XREF-CARD-NUM              TO CDEMO-CARD-NUM
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                   SET INPUT-ERROR                 TO TRUE
                   SET FLG-ACCTFILTER-NOT-OK       TO TRUE
                   IF WS-RETURN-MSG-OFF
@@ -3700,20 +3670,12 @@
            .
        9300-GETACCTDATA-BYACCT.
 
-           EXEC CICS READ
-                DATASET   (LIT-ACCTFILENAME)
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
-                INTO      (ACCOUNT-RECORD)
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                   SET FOUND-ACCT-IN-MASTER        TO TRUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                   SET INPUT-ERROR                 TO TRUE
                   SET FLG-ACCTFILTER-NOT-OK       TO TRUE
       *           SET DID-NOT-FIND-ACCT-IN-ACCTDAT TO TRUE
@@ -3750,20 +3712,12 @@
            .
 
        9400-GETCUSTDATA-BYCUST.
-           EXEC CICS READ
-                DATASET   (LIT-CUSTFILENAME)
-                RIDFLD    (WS-CARD-RID-CUST-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CUST-ID-X)
-                INTO      (CUSTOMER-RECORD)
-                LENGTH    (LENGTH OF CUSTOMER-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                   SET FOUND-CUST-IN-MASTER        TO TRUE
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                   SET INPUT-ERROR                 TO TRUE
                   SET FLG-CUSTFILTER-NOT-OK       TO TRUE
       *           SET DID-NOT-FIND-CUST-IN-CUSTDAT TO TRUE
@@ -3891,20 +3845,11 @@
 
            MOVE CC-ACCT-ID              TO WS-CARD-RID-ACCT-ID
 
-           EXEC CICS READ
-                FILE      (LIT-ACCTFILENAME)
-                UPDATE
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
-                INTO      (ACCOUNT-RECORD)
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
       *****************************************************************
       *    Could we lock the account record ?
       *****************************************************************
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)
+           IF WS-RESP-CD EQUAL TO DFHRESP-NORMAL
               CONTINUE
            ELSE
               SET INPUT-ERROR                    TO TRUE
@@ -3918,20 +3863,11 @@
 
            MOVE CDEMO-CUST-ID                   TO WS-CARD-RID-CUST-ID
 
-           EXEC CICS READ
-                FILE      (LIT-CUSTFILENAME)
-                UPDATE
-                RIDFLD    (WS-CARD-RID-CUST-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CUST-ID-X)
-                INTO      (CUSTOMER-RECORD)
-                LENGTH    (LENGTH OF CUSTOMER-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
+           CONTINUE
       *****************************************************************
       *    Could we lock the customer record ?
       *****************************************************************
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)
+           IF WS-RESP-CD EQUAL TO DFHRESP-NORMAL
               CONTINUE
            ELSE
               SET INPUT-ERROR                    TO TRUE
@@ -4062,18 +3998,12 @@
       *****************************************************************
 
 
-           EXEC CICS
-                REWRITE FILE(LIT-ACCTFILENAME)
-                        FROM(ACCT-UPDATE-RECORD)
-                        LENGTH(LENGTH OF ACCT-UPDATE-RECORD)
-                        RESP      (WS-RESP-CD)
-                        RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
       *
       *****************************************************************
       * Did account update succeed ?  *
       *****************************************************************
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)
+           IF WS-RESP-CD EQUAL TO DFHRESP-NORMAL
              CONTINUE
            ELSE
              SET LOCKED-BUT-UPDATE-FAILED    TO TRUE
@@ -4082,23 +4012,15 @@
       *****************************************************************
       * Update customer *
       *****************************************************************
-           EXEC CICS
-                        REWRITE FILE(LIT-CUSTFILENAME)
-                        FROM(CUST-UPDATE-RECORD)
-                        LENGTH(LENGTH OF CUST-UPDATE-RECORD)
-                        RESP      (WS-RESP-CD)
-                        RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
       *****************************************************************
       * Did customer update succeed ? *
       *****************************************************************
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)
+           IF WS-RESP-CD EQUAL TO DFHRESP-NORMAL
              CONTINUE
            ELSE
              SET LOCKED-BUT-UPDATE-FAILED    TO TRUE
-             EXEC CICS
-                SYNCPOINT ROLLBACK
-             END-EXEC
+             CONTINUE
              GO TO 9600-WRITE-PROCESSING-EXIT
            END-IF
            .
@@ -4208,20 +4130,11 @@
 
            MOVE LIT-THISPGM       TO ABEND-CULPRIT
 
-           EXEC CICS SEND
-                            FROM (ABEND-DATA)
-                            LENGTH(LENGTH OF ABEND-DATA)
-                            NOHANDLE
-                            ERASE
-           END-EXEC
+           CONTINUE
 
-           EXEC CICS HANDLE ABEND
-                CANCEL
-           END-EXEC
+           CONTINUE
 
-           EXEC CICS ABEND
-                ABCODE('9999')
-           END-EXEC
+           CONTINUE
            .
        ABEND-ROUTINE-EXIT.
            EXIT

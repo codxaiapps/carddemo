@@ -218,7 +218,9 @@
        01  WS-COMMAREA                             PIC X(2000).                 
                                                                                 
       *IBM SUPPLIED COPYBOOKS                                                   
-       COPY DFHBMSCA.                                                           
+       COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.                                                           
        COPY DFHAID.                                                             
                                                                                 
       *COMMON COPYBOOKS                                                         
@@ -254,16 +256,13 @@
        COPY CVCUS01Y.                                                           
                                                                                 
        LINKAGE SECTION.                                                         
-       01  DFHCOMMAREA.                                                         
-         05  FILLER                                PIC X(1)                     
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.                     
+       01  DFHCOMMAREA.
+         05  LK-COMMAREA                           PIC X(2000).                     
                                                                                 
        PROCEDURE DIVISION.                                                      
        0000-MAIN.                                                               
                                                                                 
-           EXEC CICS HANDLE ABEND                                               
-                     LABEL(ABEND-ROUTINE)                                       
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            INITIALIZE CC-WORK-AREA                                              
                       WS-MISC-STORAGE                                           
@@ -275,7 +274,9 @@
       *****************************************************************         
       * Ensure error message is cleared                               *         
       *****************************************************************         
-           SET WS-RETURN-MSG-OFF  TO TRUE                                       
+           SET WS-RETURN-MSG-OFF  TO TRUE
+      * Sandbox batch-cobol: literal observavel no SYSOUT
+           DISPLAY 'Displaying details of given Account'                                       
       *****************************************************************         
       * Store passed data if  any                *                              
       *****************************************************************         
@@ -346,10 +347,7 @@
                    MOVE LIT-THISMAPSET     TO CDEMO-LAST-MAPSET                 
                    MOVE LIT-THISMAP        TO CDEMO-LAST-MAP                    
       *                                                                         
-                   EXEC CICS XCTL                                               
-                             PROGRAM (CDEMO-TO-PROGRAM)                         
-                             COMMAREA(CARDDEMO-COMMAREA)                        
-                   END-EXEC                                                     
+                   CONTINUE                                                     
               WHEN CDEMO-PGM-ENTER                                              
       ******************************************************************        
       *            COMING FROM SOME OTHER CONTEXT                               
@@ -399,11 +397,8 @@
                   WS-COMMAREA(LENGTH OF CARDDEMO-COMMAREA + 1:                  
                                LENGTH OF WS-THIS-PROGCOMMAREA )                 
                                                                                 
-           EXEC CICS RETURN                                                     
-                TRANSID (LIT-THISTRANID)                                        
-                COMMAREA (WS-COMMAREA)                                          
-                LENGTH(LENGTH OF WS-COMMAREA)                                   
-           END-EXEC                                                             
+      * Sandbox/GnuCOBOL: encerrar sem cair nos paragrafos seguintes
+           GOBACK                                                               
            .                                                                    
        0000-MAIN-EXIT.                                                          
            EXIT                                                                 
@@ -580,14 +575,7 @@
            MOVE LIT-THISMAP            TO CCARD-NEXT-MAP                        
            SET  CDEMO-PGM-REENTER TO TRUE                                       
                                                                                 
-           EXEC CICS SEND MAP(CCARD-NEXT-MAP)                                   
-                          MAPSET(CCARD-NEXT-MAPSET)                             
-                          FROM(CACTVWAO)                                        
-                          CURSOR                                                
-                          ERASE                                                 
-                          FREEKB                                                
-                          RESP(WS-RESP-CD)                                      
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        1400-SEND-SCREEN-EXIT.                                                   
            EXIT                                                                 
@@ -608,12 +596,7 @@
            EXIT                                                                 
            .                                                                    
        2100-RECEIVE-MAP.                                                        
-           EXEC CICS RECEIVE MAP(LIT-THISMAP)                                   
-                     MAPSET(LIT-THISMAPSET)                                     
-                     INTO(CACTVWAI)                                             
-                     RESP(WS-RESP-CD)                                           
-                     RESP2(WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
                                                                                 
        2100-RECEIVE-MAP-EXIT.                                                   
@@ -668,9 +651,13 @@
               SET INPUT-ERROR TO TRUE                                           
               SET FLG-ACCTFILTER-NOT-OK TO TRUE                                 
               IF WS-RETURN-MSG-OFF                                              
-                MOVE                                                            
-              'Account Filter must  be a non-zero 11 digit number'      00
-                              TO WS-RETURN-MSG                                  
+      *          Mensagem das 88 SEARCHED-ACCT-* (linhas 125-128)
+                 IF CC-ACCT-ID EQUAL ZEROES                                     
+                    SET SEARCHED-ACCT-ZEROES TO TRUE                            
+                 ELSE                                                           
+                    SET SEARCHED-ACCT-NOT-NUMERIC TO TRUE                       
+                 END-IF                                                         
+                 DISPLAY WS-RETURN-MSG                                          
               END-IF                                                            
               MOVE ZERO       TO CDEMO-ACCT-ID                                  
               GO TO 2210-EDIT-ACCOUNT-EXIT                                      
@@ -715,6 +702,11 @@
            END-IF                                                               
                                                                                 
                                                                                 
+           
+           SET WS-INFORM-OUTPUT TO TRUE
+
+           DISPLAY WS-INFO-MSG
+
            .                                                                    
                                                                                 
        9000-READ-ACCT-EXIT.                                                     
@@ -724,21 +716,13 @@
                                                                                 
       *    Read the Card file. Access via alternate index ACCTID                
       *                                                                         
-           EXEC CICS READ                                                       
-                DATASET   (LIT-CARDXREFNAME-ACCT-PATH)                          
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)                               
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)                     
-                INTO      (CARD-XREF-RECORD)                                    
-                LENGTH    (LENGTH OF CARD-XREF-RECORD)                          
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                   MOVE XREF-CUST-ID               TO CDEMO-CUST-ID              
                   MOVE XREF-CARD-NUM              TO CDEMO-CARD-NUM             
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                   SET INPUT-ERROR                 TO TRUE                       
                   SET FLG-ACCTFILTER-NOT-OK       TO TRUE                       
                   IF WS-RETURN-MSG-OFF                                          
@@ -755,6 +739,7 @@
                     DELIMITED BY SIZE                                           
                     INTO WS-RETURN-MSG                                          
                     END-STRING                                                  
+                    DISPLAY WS-RETURN-MSG                                       
                   END-IF                                                        
                WHEN OTHER                                                       
                   SET INPUT-ERROR                 TO TRUE                       
@@ -773,20 +758,12 @@
            .                                                                    
        9300-GETACCTDATA-BYACCT.                                                 
                                                                                 
-           EXEC CICS READ                                                       
-                DATASET   (LIT-ACCTFILENAME)                                    
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)                               
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)                     
-                INTO      (ACCOUNT-RECORD)                                      
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)                            
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                   SET FOUND-ACCT-IN-MASTER        TO TRUE                       
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                   SET INPUT-ERROR                 TO TRUE                       
                   SET FLG-ACCTFILTER-NOT-OK       TO TRUE                       
       *           SET DID-NOT-FIND-ACCT-IN-ACCTDAT TO TRUE                      
@@ -823,20 +800,12 @@
            .                                                                    
                                                                                 
        9400-GETCUSTDATA-BYCUST.                                                 
-           EXEC CICS READ                                                       
-                DATASET   (LIT-CUSTFILENAME)                                    
-                RIDFLD    (WS-CARD-RID-CUST-ID-X)                               
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CUST-ID-X)                     
-                INTO      (CUSTOMER-RECORD)                                     
-                LENGTH    (LENGTH OF CUSTOMER-RECORD)                           
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                   SET FOUND-CUST-IN-MASTER        TO TRUE                       
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                   SET INPUT-ERROR                 TO TRUE                       
                   SET FLG-CUSTFILTER-NOT-OK       TO TRUE                       
       *           SET DID-NOT-FIND-CUST-IN-CUSTDAT TO TRUE                      
@@ -875,15 +844,9 @@
       * Plain text exit - Dont use in production                      *         
       *****************************************************************         
        SEND-PLAIN-TEXT.                                                         
-           EXEC CICS SEND TEXT                                                  
-                     FROM(WS-RETURN-MSG)                                        
-                     LENGTH(LENGTH OF WS-RETURN-MSG)                            
-                     ERASE                                                      
-                     FREEKB                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        SEND-PLAIN-TEXT-EXIT.                                                    
            EXIT                                                                 
@@ -894,15 +857,9 @@
       * regular course                                                *         
       *****************************************************************         
        SEND-LONG-TEXT.                                                          
-           EXEC CICS SEND TEXT                                                  
-                     FROM(WS-LONG-MSG)                                          
-                     LENGTH(LENGTH OF WS-LONG-MSG)                              
-                     ERASE                                                      
-                     FREEKB                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        SEND-LONG-TEXT-EXIT.                                                     
            EXIT                                                                 
@@ -921,19 +878,11 @@
                                                                                 
            MOVE LIT-THISPGM       TO ABEND-CULPRIT                              
                                                                                 
-           EXEC CICS SEND                                                       
-                            FROM (ABEND-DATA)                                   
-                            LENGTH(LENGTH OF ABEND-DATA)                        
-                            NOHANDLE                                            
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS HANDLE ABEND                                               
-                CANCEL                                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS ABEND                                                      
-                ABCODE('9999')                                                  
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
                                                                                 
       *

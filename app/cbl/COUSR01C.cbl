@@ -54,6 +54,8 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
       *COPY DFHATTR.
 
       *----------------------------------------------------------------*
@@ -61,8 +63,7 @@
       *----------------------------------------------------------------*
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
       *----------------------------------------------------------------*
       *                      PROCEDURE DIVISION
@@ -104,10 +105,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      PROCESS-ENTER-KEY
@@ -172,10 +170,7 @@
       *    MOVE WS-USER-ID   TO CDEMO-USER-ID
       *    MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE
            MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-               COMMAREA(CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
 
       *----------------------------------------------------------------*
@@ -187,26 +182,14 @@
 
            MOVE WS-MESSAGE TO ERRMSGO OF COUSR1AO
 
-           EXEC CICS SEND
-                     MAP('COUSR1A')
-                     MAPSET('COUSR01')
-                     FROM(COUSR1AO)
-                     ERASE
-                     CURSOR
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      RECEIVE-USRADD-SCREEN
       *----------------------------------------------------------------*
        RECEIVE-USRADD-SCREEN.
 
-           EXEC CICS RECEIVE
-                     MAP('COUSR1A')
-                     MAPSET('COUSR01')
-                     INTO(COUSR1AI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO
@@ -237,18 +220,10 @@
       *----------------------------------------------------------------*
        WRITE-USER-SEC-FILE.
 
-           EXEC CICS WRITE
-                DATASET   (WS-USRSEC-FILE)
-                FROM      (SEC-USER-DATA)
-                LENGTH    (LENGTH OF SEC-USER-DATA)
-                RIDFLD    (SEC-USR-ID)
-                KEYLENGTH (LENGTH OF SEC-USR-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    PERFORM INITIALIZE-ALL-FIELDS
                    MOVE SPACES             TO WS-MESSAGE
                    MOVE DFHGREEN           TO ERRMSGC  OF COUSR1AO
@@ -257,8 +232,8 @@
                           ' has been added ...' DELIMITED BY SIZE
                      INTO WS-MESSAGE
                    PERFORM SEND-USRADD-SCREEN
-               WHEN DFHRESP(DUPKEY)
-               WHEN DFHRESP(DUPREC)
+               WHEN DFHRESP-DUPKEY
+               WHEN DFHRESP-DUPREC
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'User ID already exist...' TO
                                    WS-MESSAGE

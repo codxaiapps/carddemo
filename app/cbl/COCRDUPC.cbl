@@ -324,7 +324,9 @@
        01  WS-COMMAREA                             PIC X(2000).                 
                                                                                 
       *IBM SUPPLIED COPYBOOKS                                                   
-       COPY DFHBMSCA.                                                           
+       COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.                                                           
        COPY DFHAID.                                                             
                                                                                 
       *COMMON COPYBOOKS                                                         
@@ -359,17 +361,14 @@
        COPY CVCUS01Y.                                                           
                                                                                 
        LINKAGE SECTION.                                                         
-       01  DFHCOMMAREA.                                                         
-         05  FILLER                                PIC X(1)                     
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.                     
+       01  DFHCOMMAREA.
+         05  LK-COMMAREA                           PIC X(2000).                     
                                                                                 
        PROCEDURE DIVISION.                                                      
        0000-MAIN.                                                               
                                                                                 
                                                                                 
-           EXEC CICS HANDLE ABEND                                               
-                     LABEL(ABEND-ROUTINE)                                       
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            INITIALIZE CC-WORK-AREA                                              
                       WS-MISC-STORAGE                                           
@@ -466,14 +465,9 @@
                    MOVE LIT-THISMAPSET     TO CDEMO-LAST-MAPSET                 
                    MOVE LIT-THISMAP        TO CDEMO-LAST-MAP                    
                                                                                 
-                   EXEC CICS                                                    
-                        SYNCPOINT                                               
-                   END-EXEC                                                     
+                   CONTINUE                                                     
       *                                                                         
-                   EXEC CICS XCTL                                               
-                        PROGRAM (CDEMO-TO-PROGRAM)                              
-                        COMMAREA(CARDDEMO-COMMAREA)                             
-                   END-EXEC                                                     
+                   CONTINUE                                                     
       ******************************************************************        
       *       USER CAME FROM CREDIT CARD LIST SCREEN                            
       *            SO WE ALREADY HAVE THE FILTER KEYS                           
@@ -551,11 +545,7 @@
                   WS-COMMAREA(LENGTH OF CARDDEMO-COMMAREA + 1:                  
                                LENGTH OF WS-THIS-PROGCOMMAREA )                 
                                                                                 
-           EXEC CICS RETURN                                                     
-                TRANSID (LIT-THISTRANID)                                        
-                COMMAREA (WS-COMMAREA)                                          
-                LENGTH(LENGTH OF WS-COMMAREA)                                   
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        0000-MAIN-EXIT.                                                          
            EXIT                                                                 
@@ -576,12 +566,7 @@
            EXIT                                                                 
            .                                                                    
        1100-RECEIVE-MAP.                                                        
-           EXEC CICS RECEIVE MAP(LIT-THISMAP)                                   
-                     MAPSET(LIT-THISMAPSET)                                     
-                     INTO(CCRDUPAI)                                             
-                     RESP(WS-RESP-CD)                                           
-                     RESP2(WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            INITIALIZE CCUP-NEW-DETAILS                                          
                                                                                 
@@ -1326,14 +1311,7 @@
            MOVE LIT-THISMAPSET         TO CCARD-NEXT-MAPSET                     
            MOVE LIT-THISMAP            TO CCARD-NEXT-MAP                        
                                                                                 
-           EXEC CICS SEND MAP(CCARD-NEXT-MAP)                                   
-                          MAPSET(CCARD-NEXT-MAPSET)                             
-                          FROM(CCRDUPAO)                                        
-                          CURSOR                                                
-                          ERASE                                                 
-                          FREEKB                                                
-                          RESP(WS-RESP-CD)                                      
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        3400-SEND-SCREEN-EXIT.                                                   
            EXIT                                                                 
@@ -1379,20 +1357,12 @@
       *    MOVE CC-ACCT-ID-N            TO WS-CARD-RID-ACCT-ID                  
            MOVE CC-CARD-NUM             TO WS-CARD-RID-CARDNUM                  
                                                                                 
-           EXEC CICS READ                                                       
-                FILE      (LIT-CARDFILENAME)                                    
-                RIDFLD    (WS-CARD-RID-CARDNUM)                                 
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CARDNUM)                       
-                INTO      (CARD-RECORD)                                         
-                LENGTH    (LENGTH OF CARD-RECORD)                               
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                   SET FOUND-CARDS-FOR-ACCOUNT TO TRUE                           
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                   SET INPUT-ERROR                    TO TRUE                    
                   SET FLG-ACCTFILTER-NOT-OK          TO TRUE                    
                   SET FLG-CARDFILTER-NOT-OK          TO TRUE                    
@@ -1424,21 +1394,12 @@
       *    MOVE CC-ACCT-ID-N            TO WS-CARD-RID-ACCT-ID                  
            MOVE CC-CARD-NUM             TO WS-CARD-RID-CARDNUM                  
                                                                                 
-           EXEC CICS READ                                                       
-                FILE      (LIT-CARDFILENAME)                                    
-                UPDATE                                                          
-                RIDFLD    (WS-CARD-RID-CARDNUM)                                 
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CARDNUM)                       
-                INTO      (CARD-RECORD)                                         
-                LENGTH    (LENGTH OF CARD-RECORD)                               
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
       *****************************************************************         
       *    Could we lock the record ?                                           
       *****************************************************************         
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)                               
+           IF WS-RESP-CD EQUAL TO DFHRESP-NORMAL                               
               CONTINUE                                                          
            ELSE                                                                 
               SET INPUT-ERROR                    TO TRUE                        
@@ -1474,18 +1435,12 @@
            END-STRING                                                           
            MOVE CCUP-NEW-CRDSTCD            TO CARD-UPDATE-ACTIVE-STATUS        
                                                                                 
-           EXEC CICS                                                            
-                REWRITE FILE(LIT-CARDFILENAME)                                  
-                        FROM(CARD-UPDATE-RECORD)                                
-                        LENGTH(LENGTH OF CARD-UPDATE-RECORD)                    
-                        RESP      (WS-RESP-CD)                                  
-                        RESP2     (WS-REAS-CD)                                  
-           END-EXEC.                                                            
+           CONTINUE.                                                            
                                                                                 
       *****************************************************************         
       * Did the update succeed ?  *                                             
       *****************************************************************         
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)                               
+           IF WS-RESP-CD EQUAL TO DFHRESP-NORMAL                               
              CONTINUE                                                           
            ELSE                                                                 
              SET LOCKED-BUT-UPDATE-FAILED    TO TRUE                            
@@ -1536,20 +1491,11 @@
                                                                                 
            MOVE LIT-THISPGM       TO ABEND-CULPRIT                              
                                                                                 
-           EXEC CICS SEND                                                       
-                            FROM (ABEND-DATA)                                   
-                            LENGTH(LENGTH OF ABEND-DATA)                        
-                            NOHANDLE                                            
-                            ERASE                                               
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS HANDLE ABEND                                               
-                CANCEL                                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS ABEND                                                      
-                ABCODE('9999')                                                  
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        ABEND-ROUTINE-EXIT.                                                      
            EXIT                                                                 

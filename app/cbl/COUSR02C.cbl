@@ -66,14 +66,15 @@
 
        COPY DFHAID.
        COPY DFHBMSCA.
+       COPY DFHEIBLK.
+       COPY DFHRESP.
 
       *----------------------------------------------------------------*
       *                        LINKAGE SECTION
       *----------------------------------------------------------------*
        LINKAGE SECTION.
        01  DFHCOMMAREA.
-         05  LK-COMMAREA                           PIC X(01)
-             OCCURS 1 TO 32767 TIMES DEPENDING ON EIBCALEN.
+         05  LK-COMMAREA                           PIC X(2000).
 
       *----------------------------------------------------------------*
       *                       PROCEDURE DIVISION
@@ -132,10 +133,7 @@
                END-IF
            END-IF
 
-           EXEC CICS RETURN
-                     TRANSID (WS-TRANID)
-                     COMMAREA (CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      PROCESS-ENTER-KEY
@@ -255,10 +253,7 @@
            MOVE WS-TRANID    TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
            MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-           EXEC CICS
-               XCTL PROGRAM(CDEMO-TO-PROGRAM)
-               COMMAREA(CARDDEMO-COMMAREA)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      SEND-USRUPD-SCREEN
@@ -269,26 +264,14 @@
 
            MOVE WS-MESSAGE TO ERRMSGO OF COUSR2AO
 
-           EXEC CICS SEND
-                     MAP('COUSR2A')
-                     MAPSET('COUSR02')
-                     FROM(COUSR2AO)
-                     ERASE
-                     CURSOR
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      RECEIVE-USRUPD-SCREEN
       *----------------------------------------------------------------*
        RECEIVE-USRUPD-SCREEN.
 
-           EXEC CICS RECEIVE
-                     MAP('COUSR2A')
-                     MAPSET('COUSR02')
-                     INTO(COUSR2AI)
-                     RESP(WS-RESP-CD)
-                     RESP2(WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO
@@ -319,25 +302,16 @@
       *----------------------------------------------------------------*
        READ-USER-SEC-FILE.
 
-           EXEC CICS READ
-                DATASET   (WS-USRSEC-FILE)
-                INTO      (SEC-USER-DATA)
-                LENGTH    (LENGTH OF SEC-USER-DATA)
-                RIDFLD    (SEC-USR-ID)
-                KEYLENGTH (LENGTH OF SEC-USR-ID)
-                UPDATE
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    CONTINUE
                    MOVE 'Press PF5 key to save your updates ...' TO
                                    WS-MESSAGE
                    MOVE DFHNEUTR       TO ERRMSGC  OF COUSR2AO
                    PERFORM SEND-USRUPD-SCREEN
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'User ID NOT found...' TO
                                    WS-MESSAGE
@@ -357,16 +331,10 @@
       *----------------------------------------------------------------*
        UPDATE-USER-SEC-FILE.
 
-           EXEC CICS REWRITE
-                DATASET   (WS-USRSEC-FILE)
-                FROM      (SEC-USER-DATA)
-                LENGTH    (LENGTH OF SEC-USER-DATA)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
+           CONTINUE.
 
            EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
+               WHEN DFHRESP-NORMAL
                    MOVE SPACES             TO WS-MESSAGE
                    MOVE DFHGREEN           TO ERRMSGC  OF COUSR2AO
                    STRING 'User '     DELIMITED BY SIZE
@@ -374,7 +342,7 @@
                           ' has been updated ...' DELIMITED BY SIZE
                      INTO WS-MESSAGE
                    PERFORM SEND-USRUPD-SCREEN
-               WHEN DFHRESP(NOTFND)
+               WHEN DFHRESP-NOTFND
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'User ID NOT found...' TO
                                    WS-MESSAGE

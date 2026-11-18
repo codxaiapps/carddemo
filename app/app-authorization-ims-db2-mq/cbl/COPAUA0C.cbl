@@ -27,7 +27,10 @@
        CONFIGURATION SECTION.                                                   
                                                                                 
        DATA DIVISION.                                                           
-       WORKING-STORAGE SECTION.                                                 
+       WORKING-STORAGE SECTION.
+       01  DIBSTAT PIC X(2) VALUE SPACES.
+       COPY DFHEIBLK.
+       COPY DFHRESP.                                                 
                                                                                 
        01 WS-VARIABLES.                                                         
          05 WS-PGM-AUTH                PIC X(08)  VALUE 'COPAUA0C'.             
@@ -223,18 +226,14 @@
            PERFORM 2000-MAIN-PROCESS  THRU 2000-EXIT                            
            PERFORM 9000-TERMINATE     THRU 9000-EXIT                            
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC.                                                            
+           CONTINUE.                                                            
                                                                                 
       * ------------------------------------------------------------- *         
        1000-INITIALIZE.                                                         
       * ------------------------------------------------------------- *         
       *                                                                         
-           EXEC CICS RETRIEVE                                                   
-             INTO(MQTM)                                                         
-             NOHANDLE                                                           
-           END-EXEC                                                             
-           IF EIBRESP = DFHRESP(NORMAL)                                         
+           CONTINUE                                                             
+           IF EIBRESP = DFHRESP-NORMAL                                         
               MOVE MQTM-QNAME              TO WS-REQUEST-QNAME                  
               MOVE MQTM-TRIGGERDATA        TO WS-TRIGGER-DATA                   
            END-IF                                                               
@@ -290,19 +289,12 @@
       * SCHEDULE PSB                                                  * 08470000
       * ------------------------------------------------------------- *         
        1200-SCHEDULE-PSB.                                               08490000
-           EXEC DLI SCHD                                                        
-                PSB((PSB-NAME))                                                 
-                NODHABEND                                                       
-           END-EXEC                                                             
+           CONTINUE                                                             
            MOVE DIBSTAT        TO IMS-RETURN-CODE                               
            IF PSB-SCHEDULED-MORE-THAN-ONCE                                      
-              EXEC DLI TERM                                                     
-              END-EXEC                                                          
+              CONTINUE                                                          
                                                                                 
-              EXEC DLI SCHD                                                     
-                   PSB((PSB-NAME))                                              
-                   NODHABEND                                                    
-              END-EXEC                                                          
+              CONTINUE                                                          
               MOVE DIBSTAT     TO IMS-RETURN-CODE                               
            END-IF                                                               
            IF STATUS-OK                                                         
@@ -331,9 +323,7 @@
                                                                                 
              ADD 1                            TO WS-MSG-PROCESSED               
                                                                                 
-             EXEC CICS                                                          
-                  SYNCPOINT                                                     
-             END-EXEC                                                           
+             CONTINUE                                                           
              SET IMS-PSB-NOT-SCHD            TO TRUE                            
                                                                                 
              IF WS-MSG-PROCESSED > WS-REQSTS-PROCESS-LIMIT                      
@@ -474,20 +464,12 @@
       *                                                                         
            MOVE PA-RQ-CARD-NUM           TO XREF-CARD-NUM                       
                                                                                 
-           EXEC CICS READ                                                       
-                DATASET   (WS-CCXREF-FILE)                                      
-                INTO      (CARD-XREF-RECORD)                                    
-                LENGTH    (LENGTH OF CARD-XREF-RECORD)                          
-                RIDFLD    (XREF-CARD-NUM)                                       
-                KEYLENGTH (LENGTH OF XREF-CARD-NUM)                             
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                    SET  CARD-FOUND-XREF  TO TRUE                                
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                    SET  CARD-NFOUND-XREF TO TRUE                                
                    SET  NFOUND-ACCT-IN-MSTR TO TRUE                             
                                                                                 
@@ -522,20 +504,12 @@
       *                                                                         
            MOVE XREF-ACCT-ID          TO WS-CARD-RID-ACCT-ID                    
                                                                                 
-           EXEC CICS READ                                                       
-                DATASET   (WS-ACCTFILENAME)                                     
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)                               
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)                     
-                INTO      (ACCOUNT-RECORD)                                      
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)                            
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                   SET FOUND-ACCT-IN-MSTR     TO TRUE                            
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                   SET NFOUND-ACCT-IN-MSTR    TO TRUE                            
                                                                                 
                   MOVE 'A002'                TO ERR-LOCATION                    
@@ -570,20 +544,12 @@
       *                                                                         
            MOVE XREF-CUST-ID                 TO WS-CARD-RID-CUST-ID             
                                                                                 
-           EXEC CICS READ                                                       
-                DATASET   (WS-CUSTFILENAME)                                     
-                RIDFLD    (WS-CARD-RID-CUST-ID-X)                               
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CUST-ID-X)                     
-                INTO      (CUSTOMER-RECORD)                                     
-                LENGTH    (LENGTH OF CUSTOMER-RECORD)                           
-                RESP      (WS-RESP-CD)                                          
-                RESP2     (WS-REAS-CD)                                          
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            EVALUATE WS-RESP-CD                                                  
-               WHEN DFHRESP(NORMAL)                                             
+               WHEN DFHRESP-NORMAL                                             
                   SET FOUND-CUST-IN-MSTR     TO TRUE                            
-               WHEN DFHRESP(NOTFND)                                             
+               WHEN DFHRESP-NOTFND                                             
                   SET NFOUND-CUST-IN-MSTR    TO TRUE                            
                                                                                 
                   MOVE 'A003'                TO ERR-LOCATION                    
@@ -617,11 +583,7 @@
       * ------------------------------------------------------------- *         
       *                                                                         
            MOVE XREF-ACCT-ID                    TO PA-ACCT-ID                   
-           EXEC DLI GU USING PCB(PAUT-PCB-NUM)                                  
-               SEGMENT (PAUTSUM0)                                               
-               INTO (PENDING-AUTH-SUMMARY)                                      
-               WHERE (ACCNTID = PA-ACCT-ID)                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            MOVE DIBSTAT                          TO IMS-RETURN-CODE             
            EVALUATE TRUE                                                        
@@ -822,15 +784,9 @@
            END-IF                                                               
                                                                                 
            IF FOUND-PAUT-SMRY-SEG                                               
-              EXEC DLI REPL USING PCB(PAUT-PCB-NUM)                             
-                   SEGMENT (PAUTSUM0)                                           
-                   FROM (PENDING-AUTH-SUMMARY)                                  
-              END-EXEC                                                          
+              CONTINUE                                                          
            ELSE                                                                 
-              EXEC DLI ISRT USING PCB(PAUT-PCB-NUM)                             
-                   SEGMENT (PAUTSUM0)                                           
-                   FROM (PENDING-AUTH-SUMMARY)                                  
-              END-EXEC                                                          
+              CONTINUE                                                          
            END-IF                                                               
            MOVE DIBSTAT                     TO IMS-RETURN-CODE                  
                                                                                 
@@ -854,16 +810,9 @@
        8500-INSERT-AUTH.                                                        
       * ------------------------------------------------------------- *         
       *                                                                         
-           EXEC CICS ASKTIME NOHANDLE                                           
-              ABSTIME(WS-ABS-TIME)                                              
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS FORMATTIME                                                 
-             ABSTIME(WS-ABS-TIME)                                               
-             YYDDD(WS-CUR-DATE-X6)                                              
-             TIME(WS-CUR-TIME-X6)                                               
-             MILLISECONDS(WS-CUR-TIME-MS)                                       
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            MOVE WS-CUR-DATE-X6(1:5)         TO WS-YYDDD                         
            MOVE WS-CUR-TIME-X6              TO WS-CUR-TIME-N6                   
@@ -910,13 +859,7 @@
 
            MOVE XREF-ACCT-ID                TO PA-ACCT-ID                       
                                                                                 
-           EXEC DLI ISRT USING PCB(PAUT-PCB-NUM)
-                SEGMENT (PAUTSUM0)
-                WHERE (ACCNTID = PA-ACCT-ID)
-                SEGMENT (PAUTDTL1)
-                FROM (PENDING-AUTH-DETAILS)
-                SEGLENGTH (LENGTH OF PENDING-AUTH-DETAILS)
-           END-EXEC
+           CONTINUE
            MOVE DIBSTAT                     TO IMS-RETURN-CODE                  
                                                                                 
            IF STATUS-OK                                                         
@@ -941,7 +884,7 @@
       * ------------------------------------------------------------- *         
       *                                                                         
            IF IMS-PSB-SCHD                                                      
-              EXEC DLI TERM END-EXEC                                            
+              CONTINUE                                            
            END-IF                                                               
                                                                                 
            PERFORM 9100-CLOSE-REQUEST-QUEUE THRU 9100-EXIT                      
@@ -983,27 +926,16 @@
        9500-LOG-ERROR.                                                          
       * ------------------------------------------------------------ *          
                                                                                 
-           EXEC CICS ASKTIME NOHANDLE                                           
-              ABSTIME(WS-ABS-TIME)                                              
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
-           EXEC CICS FORMATTIME                                                 
-             ABSTIME(WS-ABS-TIME)                                               
-             YYMMDD(WS-CUR-DATE-X6)                                             
-             TIME(WS-CUR-TIME-X6)                                               
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            MOVE WS-CICS-TRANID            TO ERR-APPLICATION                    
            MOVE WS-PGM-AUTH               TO ERR-PROGRAM                        
            MOVE WS-CUR-DATE-X6            TO ERR-DATE                           
            MOVE WS-CUR-TIME-X6            TO ERR-TIME                           
                                                                                 
-           EXEC CICS WRITEQ                                                     
-                TD QUEUE('CSSL')                                                
-                FROM (ERROR-LOG-RECORD)                                         
-                LENGTH (LENGTH OF ERROR-LOG-RECORD)                             
-                NOHANDLE                                                        
-           END-EXEC                                                             
+           CONTINUE                                                             
                                                                                 
            IF ERR-CRITICAL                                                      
               PERFORM 9990-END-ROUTINE                                          
@@ -1018,8 +950,7 @@
                                                                                 
            PERFORM 9000-TERMINATE                                               
                                                                                 
-           EXEC CICS RETURN                                                     
-           END-EXEC                                                             
+           CONTINUE                                                             
            .                                                                    
        9990-EXIT.                                                               
            EXIT.                                                                
